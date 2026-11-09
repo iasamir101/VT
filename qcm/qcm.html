@@ -1,0 +1,355 @@
+<title>QCM Concurrence Java</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout : une colonne étroite, un écran à la fois (accueil, question, résultat), historique sous l'accueil */
+:root {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --fg: #16202a;
+  --muted: #5b6a78;
+  --line: #d9e0e6;
+  --accent: #1f5f8b;
+  --accent-soft: #e3eef6;
+  --good: #2c7a4b;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11171d; --surface: #18212a; --fg: #e4eaef; --muted: #93a3b1;
+    --line: #2a3742; --accent: #6fb1e0; --accent-soft: #1d3446; --good: #6cc495;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11171d; --surface: #18212a; --fg: #e4eaef; --muted: #93a3b1;
+  --line: #2a3742; --accent: #6fb1e0; --accent-soft: #1d3446; --good: #6cc495;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 48px;
+}
+main { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+h1, h2 { text-wrap: balance; margin: 0; }
+h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.eyebrow {
+  font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--accent);
+}
+header { display: flex; flex-direction: column; gap: 6px; }
+header p { color: var(--muted); }
+.panel {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 24px; display: flex; flex-direction: column; gap: 18px;
+}
+.facts { display: flex; flex-wrap: wrap; gap: 8px 20px; color: var(--muted); font-size: 0.92rem; }
+.facts b { color: var(--fg); font-family: var(--font-mono); font-weight: 500; }
+button {
+  font: inherit; cursor: pointer; border-radius: 8px;
+}
+.primary {
+  align-self: flex-start; background: var(--accent); color: var(--surface);
+  border: none; padding: 11px 22px; font-weight: 600;
+}
+.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.chip {
+  font-family: var(--font-mono); font-size: 0.75rem; padding: 3px 9px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+}
+.track { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.track span { display: block; height: 100%; background: var(--accent); transition: width .25s; }
+.question { font-size: 1.2rem; font-weight: 600; line-height: 1.4; }
+.options { display: flex; flex-direction: column; gap: 10px; }
+.option {
+  display: flex; gap: 12px; align-items: flex-start; text-align: left; width: 100%;
+  background: var(--surface); color: var(--fg); border: 1px solid var(--line); padding: 12px 14px;
+}
+.option:hover { border-color: var(--accent); }
+.option .key {
+  font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 5px; min-width: 26px; text-align: center; flex: none;
+}
+.option[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.option[aria-pressed="true"] .key { border-color: var(--accent); color: var(--accent); }
+.option.idk { color: var(--muted); font-style: italic; border-style: dashed; }
+.hint { color: var(--muted); font-size: 0.85rem; }
+
+.score { font-family: var(--font-mono); font-size: 3.5rem; font-weight: 600; color: var(--accent); line-height: 1; }
+.note { font-size: 0.85rem; color: var(--muted); }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); }
+th { font-weight: 500; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; }
+td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.empty { color: var(--muted); font-size: 0.92rem; }
+@media (prefers-reduced-motion: reduce) { .track span { transition: none; } }
+</style>
+
+<main>
+  <header>
+    <span class="eyebrow">Évaluation niveau 0</span>
+    <h1>QCM Concurrence Java</h1>
+    <p>Multithreading et virtual threads, avant la formation.</p>
+  </header>
+
+  <section id="screen-start" class="panel" aria-labelledby="start-title">
+    <h2 id="start-title">Avant de commencer</h2>
+    <div class="facts">
+      <span><b>20</b> questions</span>
+      <span><b>12</b> multithreading</span>
+      <span><b>8</b> virtual threads</span>
+    </div>
+    <p>Les questions et les réponses apparaissent dans un ordre différent à chaque passage. Choisissez « Je ne sais pas » plutôt que de deviner : le score reflète mieux votre niveau réel. Les bonnes réponses ne sont pas affichées, seul le score final en % l'est.</p>
+    <button id="btn-start" class="primary" type="button">Commencer le test</button>
+  </section>
+
+  <section id="screen-quiz" class="panel" hidden aria-live="polite">
+    <div class="topbar">
+      <span id="q-count" class="mono">Question 1 / 20</span>
+      <span id="q-theme" class="chip">Multithreading</span>
+      <span id="q-timer" class="mono" aria-label="Temps écoulé">00:00</span>
+    </div>
+    <div class="track" aria-hidden="true"><span id="q-progress" style="width:0%"></span></div>
+    <p id="q-text" class="question"></p>
+    <div id="q-options" class="options" role="group" aria-label="Réponses"></div>
+    <div class="topbar">
+      <span class="hint">Touches A à E pour choisir, Entrée pour valider</span>
+      <button id="btn-next" class="primary" type="button" disabled>Valider</button>
+    </div>
+  </section>
+
+  <section id="screen-result" class="panel" hidden aria-labelledby="result-title">
+    <h2 id="result-title">Résultat</h2>
+    <p id="r-score" class="score">0 %</p>
+    <div class="facts">
+      <span>Durée <b id="r-time">00:00</b></span>
+      <span>Date <b id="r-date"></b></span>
+    </div>
+    <p id="r-saved" class="note"></p>
+    <button id="btn-again" class="primary" type="button">Repasser le test</button>
+  </section>
+
+  <section class="panel" aria-labelledby="hist-title">
+    <h2 id="hist-title">Historique des passages</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th class="num">Durée</th><th class="num">Score</th></tr></thead>
+        <tbody id="hist-body"></tbody>
+      </table>
+    </div>
+    <p id="hist-empty" class="empty">Chargement de l'historique…</p>
+  </section>
+</main>
+
+<script>
+const MT = "Multithreading", VT = "Virtual threads";
+const QUESTIONS = [
+  [MT, "Quelle différence entre threads et processus ?", "Les threads d'un même processus partagent la mémoire (heap)",
+    ["Chaque thread a son propre heap", "Un processus ne contient qu'un seul thread", "Deux processus partagent toujours la même mémoire"]],
+  [MT, "Qu'est-ce qu'une race condition ?", "Un résultat qui dépend de l'entrelacement des threads sur une donnée partagée",
+    ["Deux threads qui s'attendent mutuellement pour toujours", "Un thread qui n'obtient jamais de temps CPU", "Une exception levée quand deux threads démarrent ensemble"]],
+  [MT, "count++ sur un int partagé est-il thread-safe ?", "Non, lecture-modification-écriture n'est pas atomique",
+    ["Oui, c'est une seule instruction", "Oui, si la variable est volatile", "Oui, car int est un type primitif"]],
+  [MT, "Comment éviter un deadlock entre deux verrous ?", "Toujours acquérir les verrous dans le même ordre",
+    ["Utiliser davantage de threads", "Déclarer les variables volatile", "Appeler Thread.yield() régulièrement"]],
+  [MT, "Une méthode d'instance synchronized verrouille…", "le moniteur de l'objet (this)",
+    ["le moniteur de la classe", "toutes les instances de la classe", "rien si la méthode est private"]],
+  [MT, "Que garantit new Semaphore(3) ?", "Au plus 3 threads détiennent un permis en même temps",
+    ["Chaque thread attend 3 secondes avant d'entrer", "Exactement 3 threads doivent arriver pour continuer", "Le sémaphore ne peut être acquis que 3 fois au total"]],
+  [MT, "Sur quoi repose AtomicInteger.incrementAndGet() ?", "Une opération CAS (compare-and-set) sans verrou",
+    ["Un bloc synchronized interne", "Un thread dédié aux mises à jour", "Le mot-clé volatile uniquement"]],
+  [MT, "Que fait une CyclicBarrier ?", "Fait attendre N threads au même point, et se réutilise",
+    ["Un compteur à usage unique décrémenté par countDown()", "Limite le nombre de threads dans une section", "Un pool de threads circulaire"]],
+  [MT, "Que fait ExecutorService.shutdown() ?", "Refuse les nouvelles tâches et termine celles déjà soumises",
+    ["Interrompt immédiatement toutes les tâches", "Bloque jusqu'à la fin de toutes les tâches", "Redémarre le pool de threads"]],
+  [MT, "Quelle Map est adaptée à un accès concurrent ?", "ConcurrentHashMap",
+    ["HashMap", "TreeMap", "LinkedHashMap"]],
+  [MT, "Structure idéale pour un producteur/consommateur ?", "Une BlockingQueue (put/take bloquants)",
+    ["Une ArrayList", "Un HashSet", "Une Stack"]],
+  [MT, "Que permet un ReadWriteLock ?", "Plusieurs lecteurs simultanés OU un seul écrivain",
+    ["Un lecteur et un écrivain simultanés", "Un seul lecteur à la fois", "Plusieurs écrivains simultanés"]],
+  [VT, "Qu'est-ce qu'un virtual thread ?", "Un thread léger géré par la JVM, monté sur un carrier thread",
+    ["Un thread OS plus rapide", "Une coroutine qui impose async/await", "Un thread exécuté sur le GPU"]],
+  [VT, "Comment créer un virtual thread ?", "Thread.ofVirtual().start(runnable)",
+    ["new VirtualThread(runnable).start()", "Thread.virtual(runnable)", "Executors.newFixedThreadPool(n, true)"]],
+  [VT, "Pour quelles tâches les virtual threads sont-ils utiles ?", "De très nombreuses tâches bloquantes sur des I/O",
+    ["Des calculs CPU intensifs", "Accélérer un seul calcul long", "Réduire le travail du garbage collector"]],
+  [VT, "Lequel est un anti-pattern avec les virtual threads ?", "Les mettre dans un pool de taille fixe",
+    ["Créer un virtual thread par tâche", "Utiliser ReentrantLock", "Utiliser une BlockingQueue"]],
+  [VT, "Que signifie le « pinning » d'un virtual thread ?", "Il reste bloqué sur son carrier (ex. I/O dans synchronized)",
+    ["L'OS l'attache à un cœur CPU précis", "Il reçoit la priorité maximale", "Il devient un thread daemon"]],
+  [VT, "ScopedValue par rapport à ThreadLocal ?", "Immuable, liée à une portée et partagée avec les sous-tâches",
+    ["Mutable via set() à tout moment", "Plus coûteuse en mémoire avec des millions de threads", "Strictement identique, seul le nom change"]],
+  [VT, "Que garantit la Structured Concurrency (StructuredTaskScope) ?", "Les sous-tâches forment une unité : le scope attend ou annule toutes",
+    ["Les sous-tâches s'exécutent séquentiellement", "Les sous-tâches finissent dans l'ordre de lancement", "C'est un simple alias de CompletableFuture"]],
+  [VT, "Quel événement JFR signale un virtual thread épinglé ?", "jdk.VirtualThreadPinned",
+    ["jdk.ThreadPark", "jdk.GCPhasePause", "jdk.CPULoad"]],
+].map(([theme, text, good, bad]) => ({ theme, text, good, bad }));
+
+const IDK = "Je ne sais pas";
+const KEYS = ["A", "B", "C", "D", "E"];
+const $ = id => document.getElementById(id);
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+const pad = n => String(n).padStart(2, "0");
+const fmtDuration = s => `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+const fmtDate = iso => {
+  const d = new Date(iso);
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+let order = [], idx = 0, choice = null, answers = [], startedAt = 0, timerId = null, current = [];
+
+function show(screen) {
+  for (const s of ["start", "quiz", "result"]) $("screen-" + s).hidden = s !== screen;
+}
+
+function startQuiz() {
+  order = shuffle(QUESTIONS);
+  idx = 0; answers = [];
+  startedAt = Date.now();
+  clearInterval(timerId);
+  timerId = setInterval(() => { $("q-timer").textContent = fmtDuration(elapsed()); }, 1000);
+  $("q-timer").textContent = "00:00";
+  show("quiz");
+  renderQuestion();
+}
+const elapsed = () => Math.floor((Date.now() - startedAt) / 1000);
+
+function renderQuestion() {
+  const q = order[idx];
+  choice = null;
+  current = [...shuffle([q.good, ...q.bad]), IDK];
+  $("q-count").textContent = `Question ${idx + 1} / ${order.length}`;
+  $("q-theme").textContent = q.theme;
+  $("q-progress").style.width = (idx / order.length * 100) + "%";
+  $("q-text").textContent = q.text;
+  const box = $("q-options");
+  box.replaceChildren();
+  current.forEach((label, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "option" + (label === IDK ? " idk" : "");
+    b.id = "opt-" + i;
+    b.setAttribute("aria-pressed", "false");
+    const k = document.createElement("span"); k.className = "key"; k.textContent = KEYS[i];
+    const t = document.createElement("span"); t.textContent = label;
+    b.append(k, t);
+    b.addEventListener("click", () => select(i));
+    box.append(b);
+  });
+  $("btn-next").disabled = true;
+  $("btn-next").textContent = idx === order.length - 1 ? "Terminer" : "Valider";
+}
+
+function select(i) {
+  choice = i;
+  [...$("q-options").children].forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
+  $("btn-next").disabled = false;
+}
+
+function next() {
+  if (choice === null) return;
+  const q = order[idx];
+  answers.push({ theme: q.theme, ok: current[choice] === q.good, idk: current[choice] === IDK });
+  idx++;
+  if (idx < order.length) renderQuestion(); else finish();
+}
+
+async function finish() {
+  clearInterval(timerId);
+  const duree = elapsed();
+  const total = answers.length;
+  const bonnes = answers.filter(a => a.ok).length;
+  const pct = Math.round(bonnes / total * 100);
+  const by = t => answers.filter(a => a.theme === t && a.ok).length;
+  const passage = {
+    date: new Date().toISOString(), dureeSec: duree, pourcentage: pct,
+    bonnes, total, jeNeSaisPas: answers.filter(a => a.idk).length,
+    multithreading: by(MT), virtualThreads: by(VT),
+  };
+  $("r-score").textContent = pct + " %";
+  $("r-time").textContent = fmtDuration(duree);
+  $("r-date").textContent = fmtDate(passage.date);
+  $("r-saved").textContent = "Enregistrement…";
+  show("result");
+  $("r-saved").textContent = await save(passage);
+}
+
+/* ---- Historique : base partagée de l'artefact, sinon ce navigateur ---- */
+let db = null, local = [];
+const LS_KEY = "qcm-concurrence-passages";
+function readLocal() { try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; } }
+function writeLocal(list) { try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch {} }
+
+async function save(p) {
+  if (db) {
+    try { await db.collection("passages").add(p); return "Passage enregistré dans l'historique du projet."; }
+    catch (e) { /* bascule sur le navigateur */ }
+  }
+  local = [p, ...readLocal()];
+  writeLocal(local);
+  renderHistory(local);
+  return "Passage enregistré dans ce navigateur uniquement (historique partagé indisponible).";
+}
+
+function renderHistory(list) {
+  const rows = list.slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const body = $("hist-body");
+  body.replaceChildren();
+  for (const p of rows) {
+    const tr = document.createElement("tr");
+    for (const [v, cls] of [[fmtDate(p.date), ""], [fmtDuration(p.dureeSec || 0), "num"], [(p.pourcentage ?? 0) + " %", "num"]]) {
+      const td = document.createElement("td"); td.textContent = v; if (cls) td.className = cls; tr.append(td);
+    }
+    body.append(tr);
+  }
+  $("hist-empty").hidden = rows.length > 0;
+  $("hist-empty").textContent = "Aucun passage pour l'instant. Votre premier score apparaîtra ici.";
+}
+
+async function initHistory() {
+  local = readLocal();
+  renderHistory(local);
+  try { db = window.claude?.use ? await window.claude.use("db") : null; } catch { db = null; }
+  if (!db) return;
+  const fallback = setTimeout(() => renderHistory(local), 10000);
+  db.collection("passages").onSnapshot(
+    snap => { clearTimeout(fallback); renderHistory([...snap.docs.map(d => d.data()), ...local]); },
+    () => { clearTimeout(fallback); renderHistory(local); }
+  );
+}
+
+$("btn-start").addEventListener("click", startQuiz);
+$("btn-again").addEventListener("click", startQuiz);
+$("btn-next").addEventListener("click", next);
+document.addEventListener("keydown", e => {
+  if ($("screen-quiz").hidden) return;
+  const i = KEYS.indexOf(e.key.toUpperCase());
+  if (i >= 0 && i < current.length) { select(i); e.preventDefault(); }
+  else if (e.key === "Enter" && choice !== null) { next(); e.preventDefault(); }
+});
+initHistory();
+</script>

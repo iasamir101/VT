@@ -1,0 +1,19 @@
+
+---------multithreading : 
+⮚Thread/Processus
+⮚Race condition/ Dead lock
+⮚Synchronisation (synchronized, sémaphore, atomique, Cyclique barrière)
+⮚Pool de thread et Executor Service
+⮚Collections Thread Safe
+⮚Producteur Consommateur
+⮚ReaderWritter
+ 
+---------virtual thread : 
+
+⮚Principes fondateurs
+⮚API de création
+⮚Structured Concurrency
+⮚ScopedValue vs ThreadLocal
+⮚Anti-patterns à connaître
+⮚Monitoring
+⮚Concepts pour les entretiens
