@@ -1,3 +1,15 @@
+# Sorties de compilation
 target/
+out/
+*.class
+
+# IntelliJ IDEA
 .idea/
 *.iml
+
+# VS Code
+.vscode/
+
+# Système
+.DS_Store
+Thumbs.db

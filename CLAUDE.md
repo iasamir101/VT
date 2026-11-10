@@ -30,7 +30,7 @@ The folder is a git repository (`origin` = https://github.com/iasamir101/VT.git,
 
 - `simulation/`: Maven project (Java 21, no dependencies) holding the runnable examples, package root `fr.vt.simulation`:
   - `threadclassique`: classic multithreading, one sub-package per notion (`race`, `synchronisation`, `executor`, `collections`, `producteurconsommateur.{waitnotify,blockingqueue}`, `lecteurredacteur.{readwritelock,stampedlock}`).
-  - `virtualthread`: virtual-thread examples (empty for now, only `package-info.java`).
+  - `virtualthread`: virtual-thread examples (not created yet; add the package with the first example).
   - Each example has one entry point named `*Demo` with a `main`. Every class starts with a Javadoc header in French (But / Entrée / Sortie, and for `*Demo` classes an expected-output sample, what to observe, and the `exec:java` command); keep that header format for new examples; helper classes are package-private in the same sub-package, which is why sub-packages can reuse names like `Producer`, `Consumer`, `Reader`.
   - Not covered by an example yet: deadlock, atomics, `CyclicBarrier`, and all virtual-thread topics.
 - `knowledge.md`: French refresher course covering every notion of `Objectif.txt`.
