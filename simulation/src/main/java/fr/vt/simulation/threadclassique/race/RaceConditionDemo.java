@@ -9,6 +9,8 @@ package fr.vt.simulation.threadclassique.race;
  *
  */
 
+import fr.vt.simulation.threadclassique.synchroniseurs.etap1.SynchronizedCounterDemo;
+
 /**
  * Démo race condition : deux threads incrémentent le même compteur sans aucune protection.
  *
@@ -25,7 +27,7 @@ package fr.vt.simulation.threadclassique.race;
  *
  * À observer : la valeur obtenue est inférieure à 2 000 000 et change à chaque exécution : c'est le signe d'une race condition.
  *
- * Voir aussi : {@link fr.vt.simulation.threadclassique.synchronisation.SynchronizedCounterDemo} (version corrigée).
+ * Voir aussi : {@link SynchronizedCounterDemo} (version corrigée).
  *
  * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.race.RaceConditionDemo}
  */
