@@ -70,7 +70,7 @@ Les threads du pool sont des threads **non daemon** : ils restent en attente de 
 `Runnable.run()` ne renvoie rien et ne peut pas lever d'exception vérifiée. **`Callable<V>.call()`** renvoie une valeur de type `V` et peut lever une exception. `submit(callable)` renvoie un **`Future<V>`** : une « promesse » de résultat, à récupérer plus tard.
 
 ### Déroulement
-1. Trois `Callable<Integer>` dorment 2 s (calcul long simulé) puis renvoient 10, 20, 30.
+1. Trois `Callable<Integer>` renvoient 10, 20 et 30 : le premier répond tout de suite, les deux autres dorment 2 s (calcul long simulé).
 2. Les trois `submit()` rendent la main immédiatement. Les tâches démarrent **en parallèle**, une par thread du pool de 3.
 3. `future1.get()` bloque `main` jusqu'à la fin de la tâche 1. Les deux autres ont démarré en même temps, donc `get()` suivants rendent la valeur sans attendre.
 4. Total : **environ 2 s**, pas 6 s. Avec un pool d'**1 seul thread**, on mesurerait environ 6 s, car les tâches passeraient l'une après l'autre.

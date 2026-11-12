@@ -16,7 +16,7 @@ package fr.vt.simulation.threadclassique.synchroniseurs.etape2_synchronized;
  *
  * À observer : le résultat est toujours exact. Le prix à payer : les threads s'attendent, l'exécution est plus lente que la version non protégée.
  *
- * Voir aussi : {@link fr.vt.simulation.threadclassique.race.RaceConditionDemo} (version avec le bug).
+ * Voir aussi : {@link fr.vt.simulation.threadclassique.synchroniseurs.etape0_race.RaceConditionDemo} (version avec le bug).
  *
  * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etape2_synchronized.SynchronizedCounterDemo}
  */

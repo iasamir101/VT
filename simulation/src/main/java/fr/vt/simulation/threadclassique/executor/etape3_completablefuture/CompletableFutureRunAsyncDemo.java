@@ -7,17 +7,20 @@ import java.util.concurrent.CompletableFuture;
  *
  * But : montrer que la tâche s'exécute dans un autre thread (le ForkJoinPool commun) pendant que le thread principal continue.
  *
- * Entrée : aucune. Une tâche qui affiche le nom de son thread.
+ * Entrée : aucune. Une tâche qui affiche quatre fois le nom de son thread.
  *
- * Sortie : une ligne du thread principal et une ligne de la tâche asynchrone.
+ * Sortie : une ligne du thread principal et quatre lignes de la tâche asynchrone (toujours le même thread).
  *
  * Exemple de sortie attendue (l'ordre peut varier d'une exécution à l'autre) :
  * <pre>
  * Thread principal
  * Exécution dans : ForkJoinPool.commonPool-worker-1
+ * Exécution dans : ForkJoinPool.commonPool-worker-1
+ * Exécution dans : ForkJoinPool.commonPool-worker-1
+ * Exécution dans : ForkJoinPool.commonPool-worker-1
  * </pre>
  *
- * À observer : les deux lignes peuvent apparaître dans n'importe quel ordre : le thread principal n'attend la tâche qu'au {@code join()} final.
+ * À observer : "Thread principal" peut apparaître avant ou après les lignes de la tâche : le thread principal n'attend la tâche qu'au {@code join()} final. Les quatre lignes de la tâche s'exécutent dans l'ordre, dans le même thread.
  *
  * Voir aussi : {@link CompletableFutureSupplyAsyncDemo} (avec un résultat).
  *

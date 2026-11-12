@@ -29,7 +29,6 @@ import java.util.concurrent.Semaphore;
  *
  * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etape1_semaphore.SemaphoreParkingDemo}
  */
-//
 public class SemaphoreParkingDemo {
 
     private static final int PLACES = 3;

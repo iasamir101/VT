@@ -12,16 +12,26 @@ import java.util.concurrent.Future;
  *
  * But : montrer la différence avec {@link Runnable} : un {@link Callable} renvoie une valeur, que l'on récupère via le {@link Future} renvoyé par {@code submit()}.
  *
- * Entrée : aucune. Une tâche qui attend 2 secondes puis renvoie 10 + 20.
+ * Entrée : aucune. Deux parties : 1. trois tâches soumises avec {@code submit()} (la première répond tout de suite,
+ * les deux autres après 2 s) ; 2. trois tâches de 1 s, 2 s et 3 s soumises d'un coup avec {@code invokeAll()}.
  *
- * Sortie : le résultat du calcul.
+ * Sortie : le résultat de chaque tâche, puis le temps mis par {@code invokeAll()}.
  *
- * Exemple de sortie attendue (l'ordre peut varier d'une exécution à l'autre) :
+ * Exemple de sortie attendue :
  * <pre>
+ * Résultat : 10
+ * Résultat : 20
  * Résultat : 30
+ * terminé
+ * invokeAll terminé après ~3007 ms
+ * Résultat : 1 (terminé : true)
+ * Résultat : 2 (terminé : true)
+ * Résultat : 3 (terminé : true)
  * </pre>
  *
- * À observer : le résultat s'affiche après environ 2 secondes : {@code future.get()} bloque le thread principal tant que la tâche n'est pas finie.
+ * À observer : {@code future.get()} bloque le thread principal tant que la tâche n'est pas finie (environ 2 s au total pour la
+ * première partie, car les tâches tournent en parallèle). {@code invokeAll()} bloque jusqu'à la fin de toutes les tâches
+ * (environ 3 s, la plus longue) : les futures reviennent déjà terminés.
  *
  * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.executor.etape2_callablefuture.CallableFutureDemo}
  */

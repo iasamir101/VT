@@ -39,7 +39,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class CompletableFutureChainingDemo {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
 
         // La chaîne décrit les étapes ; chacune démarre quand la précédente est finie :
         // - supplyAsync : produit une valeur (10) dans le pool commun

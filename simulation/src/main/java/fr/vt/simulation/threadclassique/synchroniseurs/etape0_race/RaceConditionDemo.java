@@ -1,18 +1,12 @@
-package fr.vt.simulation.threadclassique.race;
-
-
-/**
- *
- * Une race condition survient lorsque plusieurs threads manipulent une même variable partagée en même temps,
- * et que le résultat final dépend de l'ordre imprévisible dans lequel le processeur exécute ces threads.
- *
- *
- */
+package fr.vt.simulation.threadclassique.synchroniseurs.etape0_race;
 
 import fr.vt.simulation.threadclassique.synchroniseurs.etape2_synchronized.SynchronizedCounterDemo;
 
 /**
  * Démo race condition : deux threads incrémentent le même compteur sans aucune protection.
+ *
+ * Une race condition survient lorsque plusieurs threads manipulent une même variable partagée en même temps,
+ * et que le résultat final dépend de l'ordre imprévisible dans lequel le processeur exécute ces threads.
  *
  * But : montrer qu'une opération aussi simple que {@code counter++} n'est pas atomique et perd des mises à jour quand deux threads l'exécutent en parallèle.
  *
@@ -29,7 +23,7 @@ import fr.vt.simulation.threadclassique.synchroniseurs.etape2_synchronized.Synch
  *
  * Voir aussi : {@link SynchronizedCounterDemo} (version corrigée).
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.race.RaceConditionDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etape0_race.RaceConditionDemo}
  */
 public class RaceConditionDemo {
 

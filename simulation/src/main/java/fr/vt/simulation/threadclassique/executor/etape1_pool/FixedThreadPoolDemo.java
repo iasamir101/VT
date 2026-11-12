@@ -4,22 +4,24 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Démo ExecutorService : trois tâches soumises à un pool fixe de 3 threads.
+ * Démo ExecutorService : dix tâches soumises à un pool fixe de 3 threads.
  *
  * But : montrer qu'un pool réutilise des threads nommés {@code pool-N-thread-M} au lieu d'en créer un par tâche, et qu'il faut l'arrêter avec {@code shutdown()}.
  *
- * Entrée : aucune. Trois tâches {@link Runnable} qui affichent le nom du thread qui les exécute.
+ * Entrée : aucune. Dix tâches {@link Runnable} qui affichent le nom du thread qui les exécute.
  *
  * Sortie : une ligne par tâche avec le nom du thread du pool.
  *
- * Exemple de sortie attendue (l'ordre peut varier d'une exécution à l'autre) :
+ * Exemple de sortie attendue (extrait ; l'ordre et la répartition varient d'une exécution à l'autre) :
  * <pre>
  * Tâche 1 exécutée par : pool-1-thread-1
  * Tâche 2 exécutée par : pool-1-thread-2
  * Tâche 3 exécutée par : pool-1-thread-3
+ * Tâche 4 exécutée par : pool-1-thread-1
+ * ...
  * </pre>
  *
- * À observer : l'ordre des lignes peut changer. Sans {@code shutdown()}, le programme ne s'arrêterait jamais : les threads du pool restent en vie.
+ * À observer : seulement trois noms de threads pour dix tâches : les threads sont réutilisés. L'ordre des lignes peut changer. Sans {@code shutdown()}, le programme ne s'arrêterait jamais : les threads du pool restent en vie.
  *
  * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.executor.etape1_pool.FixedThreadPoolDemo}
  */

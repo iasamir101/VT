@@ -71,16 +71,15 @@ Un `AtomicInteger` est un entier dont les opérations (`incrementAndGet`, `addAn
 `AtomicReference<V>` applique le CAS à une **référence** : `compareAndSet(attendu, nouveau)` remplace la référence **seulement si elle est toujours celle qu'on a lue**. Combiné à des objets qu'on ne modifie jamais (on en fabrique une copie), il permet des structures sans verrou.
 
 ### Déroulement
-**Expérience 1 : le premier arrivé gagne.**
-1. Trois threads appellent chacun `compareAndSet(null, "thread-X")` sur la même référence.
-2. Le premier trouve `null` et réussit (`true`). Les autres trouvent la référence déjà remplie : leur appel renvoie `false`.
-3. Un seul propriétaire, qui change à chaque exécution.
+**Partie 1 : une écriture ordinaire (le problème).**
+1. Deux threads écrivent chacun une valeur (`"B"` et `"C"`) dans la **même variable** `String`, sans protection.
+2. Il n'y a **pas de vérification** : la dernière écriture l'emporte. Le programme affiche `B` ou `C` selon l'ordre imprévisible des threads (race condition).
 
-**Expérience 2 : la boucle CAS.**
-1. Deux threads ajoutent chacun 1 000 éléments à une même liste, sans `synchronized`.
-2. Chaque ajout suit le schéma **lire, calculer, publier** : lire la liste actuelle (`current`), en faire une **copie** avec l'élément en plus (`updated`), puis `compareAndSet(current, updated)`.
-3. Si l'autre thread a publié entre-temps, `compareAndSet` renvoie `false` : on **relit et on recommence**.
-4. Résultat : toujours **2 000** éléments. Aucun ajout n'est perdu, et aucun thread n'attend l'autre.
+**Partie 2 : `compareAndSet` (la solution).**
+1. Un `AtomicReference<String>` vaut `"EN_ATTENTE"`. Deux threads tentent chacun de le changer : le thread 1 vers `"VALIDE"`, le thread 2 vers `"REFUSE"`.
+2. Chaque thread appelle `compareAndSet("EN_ATTENTE", nouvelleValeur)` : « change le statut **seulement s'il vaut toujours** `EN_ATTENTE` ».
+3. Le premier thread qui passe réussit (`true`) et le statut change. L'autre trouve que le statut n'est plus `EN_ATTENTE` : son `compareAndSet` renvoie `false` et **ne change rien**.
+4. Le statut final est `VALIDE` ou `REFUSE` : jamais un mélange, et **un seul thread a gagné**.
 
 ### Avantages
 - Mise à jour atomique d'un **objet entier** (pas seulement un nombre), sans verrou.
@@ -90,7 +89,7 @@ Un `AtomicInteger` est un entier dont les opérations (`incrementAndGet`, `addAn
 ### Limites
 - **Compare par référence (`==`), pas avec `equals()`** : deux objets égaux mais distincts ne sont pas reconnus.
 - **Problème ABA** : la valeur passe de A à B puis revient à A entre la lecture et le CAS ; le CAS réussit sans voir le changement. `AtomicStampedReference` (valeur + numéro de version) le résout.
-- Copier tout l'objet à chaque modification coûte cher (dans la démo, toute la liste est recopiée à chaque ajout).
+- Copier tout l'objet à chaque modification coûte cher.
 - Sous forte contention, beaucoup de réessais perdus.
 
 ### Astuces
@@ -101,7 +100,8 @@ Un `AtomicInteger` est un entier dont les opérations (`incrementAndGet`, `addAn
 ### Bonnes pratiques
 - Publier des objets **immuables** (ou jamais modifiés après publication) dans l'`AtomicReference`.
 - La fonction de calcul doit être courte, pure et rejouable.
-- En vrai code, préférer une structure prête à l'emploi (`CopyOnWriteArrayList`, `ConcurrentLinkedQueue`) à une boucle CAS écrite à la main. La démo sert à **comprendre le principe**, pas de modèle à copier.
+- La démo montre le `compareAndSet` seul ; la **boucle de réessai** (lire, calculer une nouvelle version, `compareAndSet`, recommencer si `false`) est le schéma décrit ci-dessus mais n'est pas codée dans la démo.
+- En vrai code, préférer une structure prête à l'emploi (`CopyOnWriteArrayList`, `ConcurrentLinkedQueue`) à une boucle CAS écrite à la main.
 
 ### À retenir
 > `AtomicReference` = **CAS sur un objet** : lire, calculer une nouvelle version, `compareAndSet`, **recommencer en cas d'échec**. Compare par **référence** ; attention au problème **ABA**.

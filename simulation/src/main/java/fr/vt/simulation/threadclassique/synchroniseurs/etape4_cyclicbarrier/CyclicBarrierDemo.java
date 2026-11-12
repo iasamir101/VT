@@ -9,11 +9,11 @@ import java.util.concurrent.CyclicBarrier;
  * But : montrer que tous les threads se retrouvent au même point avant de repartir ensemble,
  * et que la barrière se réinitialise toute seule pour l'étape suivante (elle est "cyclique").
  *
- * Entrée : aucune. Trois threads qui font deux étapes de travail de durées différentes.
+ * Entrée : aucune. Trois threads qui font quatre étapes de travail de durées différentes (1 s, 2 s et 3 s par étape).
  *
  * Sortie : une ligne par arrivée à la barrière, et une ligne quand la barrière est franchie.
  *
- * Exemple de sortie attendue (l'ordre des arrivées peut varier) :
+ * Exemple de sortie attendue (extrait : les deux premières des quatre étapes ; l'ordre des arrivées peut varier) :
  * <pre>
  * Thread 1 arrive à la barrière (étape 1)
  * Thread 2 arrive à la barrière (étape 1)
@@ -23,6 +23,7 @@ import java.util.concurrent.CyclicBarrier;
  * Thread 2 arrive à la barrière (étape 2)
  * Thread 3 arrive à la barrière (étape 2)
  * >>> Tous arrivés : étape 2 terminée, on repart ensemble
+ * ...
  * </pre>
  *
  * À observer : aucun thread ne passe à l'étape 2 avant que le plus lent ait fini l'étape 1.

@@ -30,6 +30,7 @@ public class CompletableFutureSupplyAsyncDemo {
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // restaure le statut d'interruption avant de sortir
                 throw new RuntimeException(e);
             }
             return 10 + 20 ;

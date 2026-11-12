@@ -1,12 +1,12 @@
 # Synchroniseurs : fiches de révision
 
-Package racine : `fr.vt.simulation.threadclassique.synchroniseurs` (les packages `etape1_semaphore` à `etape5_exchanger` ci-dessous en sont des sous-packages ; `RaceConditionDemo` est dans `threadclassique.race`).
+Package racine : `fr.vt.simulation.threadclassique.synchroniseurs` (les packages `etape0_race` à `etape5_exchanger` ci-dessous en sont des sous-packages).
 
 Ces outils **coordonnent des threads entre eux** : exclusion mutuelle, limitation d'accès, attente de la fin des autres, rendez-vous, échange de données. Chaque fiche suit le même plan : notion, déroulement, avantages, limites, astuces, bonnes pratiques, à retenir.
 
 | Étape | Package | Démo | Question à laquelle il répond |
 |---|---|---|---|
-| départ | `threadclassique.race` | `RaceConditionDemo` | Quel est le problème que les synchroniseurs résolvent ? |
+| 0 | `etape0_race` | `RaceConditionDemo` | Quel est le problème que les synchroniseurs résolvent ? |
 | 1 | `etape1_semaphore` | `SemaphoreParkingDemo` | Combien de threads peuvent entrer en même temps ? |
 | 2 | `etape2_synchronized` | `SynchronizedCounterDemo` | Comment n'avoir qu'un seul thread à la fois dans une section ? |
 | 3 | `etape3_countdownlatch` | `CountDownLatchDemo` | Comment attendre que N événements soient terminés ? |
@@ -19,13 +19,13 @@ Lancer une démo (depuis `simulation/`) :
 mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.<package>.<Demo>
 ```
 
-Fil conducteur : **voir le problème** (départ), **limiter l'accès** (0 et 1), **attendre les autres** (2), **se rejoindre** (3), **échanger** (4).
+Fil conducteur : **voir le problème** (0), **limiter l'accès** (1 et 2), **attendre les autres** (3), **se rejoindre** (4), **échanger** (5).
 
 ---
 
-## Point de départ : `RaceConditionDemo` (la race condition)
+## 0. `RaceConditionDemo` : la race condition
 
-Cette démo est dans le package `threadclassique.race`, pas dans `synchroniseurs`. Elle montre le **problème** que `synchronized` (étape 2) corrige : `SynchronizedCounterDemo` est exactement la même démo, protégée.
+Cette démo est l'étape 0 du package `synchroniseurs` (`etape0_race`). Elle montre le **problème** que `synchronized` (étape 2) corrige : `SynchronizedCounterDemo` est exactement la même démo, protégée.
 
 ### Notion
 Une **race condition** apparaît quand plusieurs threads lisent et modifient la même donnée partagée sans coordination, et que le résultat dépend de l'ordre dans lequel ils s'entrelacent. `counter++` semble une seule opération, mais c'en sont **trois** : lire, ajouter 1, écrire. Ce n'est pas atomique.
