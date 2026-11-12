@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.executor;
+package fr.vt.simulation.threadclassique.executor.etape3_completablefuture;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -21,15 +21,22 @@ import java.util.concurrent.CompletableFuture;
  *
  * Voir aussi : {@link CompletableFutureSupplyAsyncDemo} (avec un résultat).
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.executor.CompletableFutureRunAsyncDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.executor.etape3_completablefuture.CompletableFutureRunAsyncDemo}
  */
 public class CompletableFutureRunAsyncDemo {
 
     public static void main(String[] args) {
         // Sans executor fourni, la tâche s'exécute dans le ForkJoinPool commun
         // (affiche "ForkJoinPool.commonPool-worker-N")
-        CompletableFuture<Void> future = CompletableFuture.runAsync(() ->
-                System.out.println("Exécution dans : " + Thread.currentThread().getName()));
+        CompletableFuture<Void> future = CompletableFuture.runAsync(
+                () ->
+                {
+                System.out.println("Exécution dans : " + Thread.currentThread().getName());
+                System.out.println("Exécution dans : " + Thread.currentThread().getName());
+                System.out.println("Exécution dans : " + Thread.currentThread().getName());
+                System.out.println("Exécution dans : " + Thread.currentThread().getName());
+                }
+        );
 
         // Le thread principal continue sans attendre : cette ligne peut s'afficher en premier
         System.out.println("Thread principal");

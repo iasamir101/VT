@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.executor;
+package fr.vt.simulation.threadclassique.executor.etape1_pool;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,18 +21,21 @@ import java.util.concurrent.Executors;
  *
  * À observer : l'ordre des lignes peut changer. Sans {@code shutdown()}, le programme ne s'arrêterait jamais : les threads du pool restent en vie.
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.executor.FixedThreadPoolDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.executor.etape1_pool.FixedThreadPoolDemo}
  */
 public class FixedThreadPoolDemo {
 
     public static void main(String[] args) {
+
         ExecutorService executor = Executors.newFixedThreadPool(3);
 
         try {
-            for (int i = 1; i <= 3; i++) {
+            for (int i = 1; i <= 10; i++) {
                 int taskId = i;
-                executor.submit(() ->
-                        System.out.println("Tâche " + taskId + " exécutée par : " + Thread.currentThread().getName()));
+                executor.submit(
+                        () ->
+                        System.out.println("Tâche " + taskId + " exécutée par : " + Thread.currentThread().getName())
+                );
             }
         } finally {
             // Refuse les nouvelles tâches mais laisse finir celles déjà soumises.

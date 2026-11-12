@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.executor;
+package fr.vt.simulation.threadclassique.executor.etape3_completablefuture;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -20,17 +20,30 @@ import java.util.concurrent.CompletableFuture;
  *
  * Voir aussi : {@link CompletableFutureRunAsyncDemo} (sans résultat).
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.executor.CompletableFutureSupplyAsyncDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.executor.etape3_completablefuture.CompletableFutureSupplyAsyncDemo}
  */
 public class CompletableFutureSupplyAsyncDemo {
 
     public static void main(String[] args) {
-        CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> 10 + 20);
+
+        CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            return 10 + 20 ;
+        });
+
+        System.out.println("Thread principal 01");
 
         // join() attend le résultat comme get(), mais lève une exception non vérifiée
         // (CompletionException) : pas de throws ni de try/catch obligatoire
         Integer result = future.join();
 
         System.out.println("Résultat : " + result);
+
+        System.out.println("Thread principal 02");
+
     }
 }
