@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.producteurconsommateur.step_02_blockingqueue;
+package fr.vt.simulation.threadclassique.producteurconsommateur.etape2_blockingqueue;
 
 import java.util.concurrent.BlockingQueue;
 

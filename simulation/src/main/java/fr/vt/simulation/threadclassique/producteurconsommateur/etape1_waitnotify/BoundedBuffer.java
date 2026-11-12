@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.producteurconsommateur.step_01_waitnotify;
+package fr.vt.simulation.threadclassique.producteurconsommateur.etape1_waitnotify;
 
 import java.util.LinkedList;
 import java.util.Queue;

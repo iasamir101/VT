@@ -9,7 +9,7 @@ package fr.vt.simulation.threadclassique.race;
  *
  */
 
-import fr.vt.simulation.threadclassique.synchroniseurs.etap1.SynchronizedCounterDemo;
+import fr.vt.simulation.threadclassique.synchroniseurs.etape2_synchronized.SynchronizedCounterDemo;
 
 /**
  * Démo race condition : deux threads incrémentent le même compteur sans aucune protection.

@@ -29,7 +29,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The folder is a git repository (`origin` = https://github.com/iasamir101/VT.git, branch `master`). Main content:
 
 - `simulation/`: Maven project (Java 21, no dependencies) holding the runnable examples, package root `fr.vt.simulation`:
-  - `threadclassique`: classic multithreading, one sub-package per notion (`base` (producer/consumer with wait/notifyAll over several classes), `race`, `synchroniseurs.{etap0 (Semaphore),etap1 (synchronized),etape2_countdownlatch,etape3_cyclicbarrier,etape4_exchanger}`, `executor.{etape1_pool,etape2_callablefuture,etape3_completablefuture}` (numbered by learning order: pool, then Future, then CompletableFuture), `structuresdonnees.{etap0_conchasmap,etape1_atomicinteger,etape2_atomicreference}` (suggested learning order: atomic CAS counter, CAS on references, then thread-safe map), `producteurconsommateur.{step_01_waitnotify,step_02_blockingqueue}`, `lecteurredacteur.{readwritelock,stampedlock}`).
+  - `threadclassique`: classic multithreading, one sub-package per notion; learning-order sub-packages are named `etapeN_name`, numbered from 1 (`base` (producer/consumer with wait/notifyAll over several classes), `race`, `synchroniseurs.{etape1_semaphore,etape2_synchronized,etape3_countdownlatch,etape4_cyclicbarrier,etape5_exchanger}`, `executor.{etape1_pool,etape2_callablefuture,etape3_completablefuture}` (numbered by learning order: pool, then Future, then CompletableFuture), `structuresdonnees.{etape1_atomicinteger,etape2_atomicreference,etape3_concurrenthashmap}` (numbered by learning order: atomic CAS counter, CAS on references, then thread-safe map), `producteurconsommateur.{etape1_waitnotify,etape2_blockingqueue}`, `lecteurredacteur.{etape1_readwritelock,etape2_stampedlock}`).
   - `virtualthread`: virtual-thread examples (not created yet; add the package with the first example).
   - Each example has one entry point named `*Demo` with a `main`. Every class starts with a Javadoc header in French (But / Entrée / Sortie, and for `*Demo` classes an expected-output sample, what to observe, and the `exec:java` command); keep that header format for new examples; helper classes are package-private in the same sub-package, which is why sub-packages can reuse names like `Producer`, `Consumer`, `Reader`.
   - Not covered by an example yet: deadlock and all virtual-thread topics.
@@ -38,6 +38,7 @@ The folder is a git repository (`origin` = https://github.com/iasamir101/VT.git,
   - `simulation/README-structures-de-donnees.md`: `structuresdonnees.*` (`AtomicIntegerDemo`, `AtomicReferenceDemo`, `ConcurrentHashMapDemo`).
   - `simulation/README-synchroniseurs.md`: `synchroniseurs.*` and `RaceConditionDemo` (`SemaphoreParkingDemo`, `SynchronizedCounterDemo`, `CountDownLatchDemo`, `CyclicBarrierDemo`, `ExchangerDemo`).
   - `simulation/README-producteur-consommateur.md`: `producteurconsommateur.*` (`WaitNotifyProducerConsumerDemo`, `BlockingQueueProducerConsumerDemo`).
+  - `simulation/README-lecteur-redacteur.md`: `lecteurredacteur.*` (`ReadWriteLockDemo`, `StampedLockDemo`).
 - `knowledge.md`: French refresher course covering every notion of `Objectif.txt`.
 - `qcm/qcm.html`: the level-0 quiz (see below).
 

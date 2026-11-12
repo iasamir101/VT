@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.synchroniseurs.etap1;
+package fr.vt.simulation.threadclassique.synchroniseurs.etape2_synchronized;
 
 /**
  * Démo synchronized : le compteur de {@code RaceConditionDemo}, protégé par une méthode {@code synchronized}.
@@ -18,7 +18,7 @@ package fr.vt.simulation.threadclassique.synchroniseurs.etap1;
  *
  * Voir aussi : {@link fr.vt.simulation.threadclassique.race.RaceConditionDemo} (version avec le bug).
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etap1.SynchronizedCounterDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etape2_synchronized.SynchronizedCounterDemo}
  */
 public class SynchronizedCounterDemo {
 

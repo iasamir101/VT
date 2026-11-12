@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.producteurconsommateur.step_02_blockingqueue;
+package fr.vt.simulation.threadclassique.producteurconsommateur.etape2_blockingqueue;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -29,9 +29,9 @@ import java.util.concurrent.BlockingQueue;
  *
  * À observer : aucun wait/notify dans le code. Le consommateur s'arrête proprement à la réception de {@code -1}, sans être interrompu.
  *
- * Voir aussi : {@code producteurconsommateur.step_01_waitnotify} (version écrite à la main).
+ * Voir aussi : {@code producteurconsommateur.etape1_waitnotify} (version écrite à la main).
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.producteurconsommateur.step_02_blockingqueue.BlockingQueueProducerConsumerDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.producteurconsommateur.etape2_blockingqueue.BlockingQueueProducerConsumerDemo}
  */
 public class BlockingQueueProducerConsumerDemo {
 

@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.lecteurredacteur.readwritelock;
+package fr.vt.simulation.threadclassique.lecteurredacteur.etape1_readwritelock;
 
 /**
  * Thread lecteur de la démo ReadWriteLock.

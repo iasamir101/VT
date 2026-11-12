@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.lecteurredacteur.stampedlock;
+package fr.vt.simulation.threadclassique.lecteurredacteur.etape2_stampedlock;
 
 /**
  * Thread lecteur de la démo StampedLock.

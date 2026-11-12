@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.synchroniseurs.etape4_exchanger;
+package fr.vt.simulation.threadclassique.synchroniseurs.etape5_exchanger;
 
 import java.util.concurrent.Exchanger;
 
@@ -28,7 +28,7 @@ import java.util.concurrent.Exchanger;
  *
  * Voir aussi : {@code CyclicBarrierDemo} (rendez-vous sans échange, pour N threads).
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etape4_exchanger.ExchangerDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etape5_exchanger.ExchangerDemo}
  */
 public class ExchangerDemo {
 

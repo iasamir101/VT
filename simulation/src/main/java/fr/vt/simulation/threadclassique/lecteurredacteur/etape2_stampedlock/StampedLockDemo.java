@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.lecteurredacteur.stampedlock;
+package fr.vt.simulation.threadclassique.lecteurredacteur.etape2_stampedlock;
 
 import java.util.List;
 
@@ -25,9 +25,9 @@ import java.util.List;
  *
  * À observer : le solde final vaut toujours 1000 + 2 x 5 x 100 = 2000. Un lecteur ne voit jamais une valeur incohérente, même sans prendre de verrou la plupart du temps.
  *
- * Voir aussi : {@code lecteurredacteur.readwritelock} (verrou lecture/écriture classique).
+ * Voir aussi : {@code lecteurredacteur.etape1_readwritelock} (verrou lecture/écriture classique).
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.lecteurredacteur.stampedlock.StampedLockDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.lecteurredacteur.etape2_stampedlock.StampedLockDemo}
  */
 public class StampedLockDemo {
 
@@ -35,9 +35,11 @@ public class StampedLockDemo {
         BankAccount account = new BankAccount();
 
         List<Thread> threads = List.of(
+
                 new BalanceReader(account, "Reader-1"),
                 new BalanceReader(account, "Reader-2"),
                 new BalanceReader(account, "Reader-3"),
+
                 new DepositWriter(account, "Writer-1"),
                 new DepositWriter(account, "Writer-2"));
 

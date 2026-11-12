@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.synchroniseurs.etap0;
+package fr.vt.simulation.threadclassique.synchroniseurs.etape1_semaphore;
 
 import java.util.concurrent.Semaphore;
 
@@ -27,7 +27,7 @@ import java.util.concurrent.Semaphore;
  *
  * À observer : jamais plus de 3 voitures entre un "entre" et son "quitte". Une nouvelle voiture n'entre qu'après une sortie. Le programme dure environ 8 secondes (4 vagues de 2 s).
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etap0.SemaphoreParkingDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etape1_semaphore.SemaphoreParkingDemo}
  */
 //
 public class SemaphoreParkingDemo {

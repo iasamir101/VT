@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.synchroniseurs.etape3_cyclicbarrier;
+package fr.vt.simulation.threadclassique.synchroniseurs.etape4_cyclicbarrier;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -33,7 +33,7 @@ import java.util.concurrent.CyclicBarrier;
  *
  * Voir aussi : {@code CountDownLatchDemo}.
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etape3_cyclicbarrier.CyclicBarrierDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etape4_cyclicbarrier.CyclicBarrierDemo}
  */
 public class CyclicBarrierDemo {
 

@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.synchroniseurs.etape2_countdownlatch;
+package fr.vt.simulation.threadclassique.synchroniseurs.etape3_countdownlatch;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -25,7 +25,7 @@ import java.util.concurrent.CountDownLatch;
  *
  * Voir aussi : {@code CyclicBarrierDemo} (attente mutuelle et réutilisable).
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etape2_countdownlatch.CountDownLatchDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.synchroniseurs.etape3_countdownlatch.CountDownLatchDemo}
  */
 public class CountDownLatchDemo {
 

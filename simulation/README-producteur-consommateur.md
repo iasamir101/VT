@@ -1,13 +1,13 @@
 # Producteur / consommateur : fiches de révision
 
-Package racine : `fr.vt.simulation.threadclassique.producteurconsommateur` (sous-packages `step_01_waitnotify` et `step_02_blockingqueue`).
+Package racine : `fr.vt.simulation.threadclassique.producteurconsommateur` (sous-packages `etape1_waitnotify` et `etape2_blockingqueue`).
 
 Le problème est le même dans les deux démos : un **producteur** dépose des éléments dans un tampon partagé, un **consommateur** les retire, à des vitesses différentes. Il faut que le producteur attende quand le tampon est plein, que le consommateur attende quand il est vide, et qu'aucun élément ne soit perdu ni lu deux fois.
 
 | Étape | Package | Démo | Notion |
 |---|---|---|---|
-| 1 | `step_01_waitnotify` | `WaitNotifyProducerConsumerDemo` | Tampon borné écrit à la main : `synchronized`, `wait()`, `notifyAll()` |
-| 2 | `step_02_blockingqueue` | `BlockingQueueProducerConsumerDemo` | `BlockingQueue` : la file gère seule l'attente, et une *poison pill* signale la fin |
+| 1 | `etape1_waitnotify` | `WaitNotifyProducerConsumerDemo` | Tampon borné écrit à la main : `synchronized`, `wait()`, `notifyAll()` |
+| 2 | `etape2_blockingqueue` | `BlockingQueueProducerConsumerDemo` | `BlockingQueue` : la file gère seule l'attente, et une *poison pill* signale la fin |
 
 Lancer une démo (depuis `simulation/`) :
 

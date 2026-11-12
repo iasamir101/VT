@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.producteurconsommateur.step_01_waitnotify;
+package fr.vt.simulation.threadclassique.producteurconsommateur.etape1_waitnotify;
 
 /**
  * Démo producteur / consommateur "à la main" avec {@code wait()} et {@code notifyAll()}.
@@ -25,9 +25,9 @@ package fr.vt.simulation.threadclassique.producteurconsommateur.step_01_waitnoti
  *
  * À observer : le consommateur étant deux fois plus lent, les "Produit" prennent de l'avance. Les 10 valeurs sont consommées dans l'ordre, aucune n'est perdue.
  *
- * Voir aussi : {@code producteurconsommateur.step_02_blockingqueue} (même problème avec une BlockingQueue).
+ * Voir aussi : {@code producteurconsommateur.etape2_blockingqueue} (même problème avec une BlockingQueue).
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.producteurconsommateur.step_01_waitnotify.WaitNotifyProducerConsumerDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.producteurconsommateur.etape1_waitnotify.WaitNotifyProducerConsumerDemo}
  */
 public class WaitNotifyProducerConsumerDemo {
 

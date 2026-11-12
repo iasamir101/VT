@@ -1,17 +1,17 @@
 # Synchroniseurs : fiches de révision
 
-Package racine : `fr.vt.simulation.threadclassique.synchroniseurs` (les packages `etap0` à `etape4_exchanger` ci-dessous en sont des sous-packages ; `RaceConditionDemo` est dans `threadclassique.race`).
+Package racine : `fr.vt.simulation.threadclassique.synchroniseurs` (les packages `etape1_semaphore` à `etape5_exchanger` ci-dessous en sont des sous-packages ; `RaceConditionDemo` est dans `threadclassique.race`).
 
 Ces outils **coordonnent des threads entre eux** : exclusion mutuelle, limitation d'accès, attente de la fin des autres, rendez-vous, échange de données. Chaque fiche suit le même plan : notion, déroulement, avantages, limites, astuces, bonnes pratiques, à retenir.
 
 | Étape | Package | Démo | Question à laquelle il répond |
 |---|---|---|---|
 | départ | `threadclassique.race` | `RaceConditionDemo` | Quel est le problème que les synchroniseurs résolvent ? |
-| 0 | `etap0` | `SemaphoreParkingDemo` | Combien de threads peuvent entrer en même temps ? |
-| 1 | `etap1` | `SynchronizedCounterDemo` | Comment n'avoir qu'un seul thread à la fois dans une section ? |
-| 2 | `etape2_countdownlatch` | `CountDownLatchDemo` | Comment attendre que N événements soient terminés ? |
-| 3 | `etape3_cyclicbarrier` | `CyclicBarrierDemo` | Comment faire attendre N threads les uns les autres ? |
-| 4 | `etape4_exchanger` | `ExchangerDemo` | Comment deux threads s'échangent-ils une donnée ? |
+| 1 | `etape1_semaphore` | `SemaphoreParkingDemo` | Combien de threads peuvent entrer en même temps ? |
+| 2 | `etape2_synchronized` | `SynchronizedCounterDemo` | Comment n'avoir qu'un seul thread à la fois dans une section ? |
+| 3 | `etape3_countdownlatch` | `CountDownLatchDemo` | Comment attendre que N événements soient terminés ? |
+| 4 | `etape4_cyclicbarrier` | `CyclicBarrierDemo` | Comment faire attendre N threads les uns les autres ? |
+| 5 | `etape5_exchanger` | `ExchangerDemo` | Comment deux threads s'échangent-ils une donnée ? |
 
 Lancer une démo (depuis `simulation/`) :
 
@@ -25,7 +25,7 @@ Fil conducteur : **voir le problème** (départ), **limiter l'accès** (0 et 1),
 
 ## Point de départ : `RaceConditionDemo` (la race condition)
 
-Cette démo est dans le package `threadclassique.race`, pas dans `synchroniseurs`. Elle montre le **problème** que `synchronized` (étape 1) corrige : `SynchronizedCounterDemo` est exactement la même démo, protégée.
+Cette démo est dans le package `threadclassique.race`, pas dans `synchroniseurs`. Elle montre le **problème** que `synchronized` (étape 2) corrige : `SynchronizedCounterDemo` est exactement la même démo, protégée.
 
 ### Notion
 Une **race condition** apparaît quand plusieurs threads lisent et modifient la même donnée partagée sans coordination, et que le résultat dépend de l'ordre dans lequel ils s'entrelacent. `counter++` semble une seule opération, mais c'en sont **trois** : lire, ajouter 1, écrire. Ce n'est pas atomique.
@@ -60,11 +60,11 @@ Avec 1 000 itérations, le premier thread finit souvent avant que le second dém
 - Un bug de concurrence qui « ne se reproduit pas » n'est pas absent : raisonner sur le code plutôt que sur un test qui passe.
 
 ### À retenir
-> `counter++` = **lire, ajouter, écrire** : trois étapes, donc pas atomique. Sans protection, des incréments sont **perdus**, de façon imprévisible. Solutions : `synchronized` (étape 1), atomiques (`AtomicIntegerDemo`).
+> `counter++` = **lire, ajouter, écrire** : trois étapes, donc pas atomique. Sans protection, des incréments sont **perdus**, de façon imprévisible. Solutions : `synchronized` (étape 2), atomiques (`AtomicIntegerDemo`).
 
 ---
 
-## 0. `SemaphoreParkingDemo` : limiter le nombre d'accès simultanés
+## 1. `SemaphoreParkingDemo` : limiter le nombre d'accès simultanés
 
 ### Notion
 Un `Semaphore` est un **compteur de permis**. `acquire()` prend un permis (ou bloque s'il n'en reste aucun), `release()` en rend un. Avec `new Semaphore(3)`, trois threads au plus sont dans la zone protégée en même temps.
@@ -103,7 +103,7 @@ Un `Semaphore` est un **compteur de permis**. `acquire()` prend un permis (ou bl
 
 ---
 
-## 1. `SynchronizedCounterDemo` : l'exclusion mutuelle avec `synchronized`
+## 2. `SynchronizedCounterDemo` : l'exclusion mutuelle avec `synchronized`
 
 ### Notion
 `synchronized` utilise le **verrou intrinsèque** (moniteur) d'un objet : un seul thread à la fois peut entrer dans les blocs ou méthodes protégés par le même verrou. Il garantit deux choses : l'**exclusion mutuelle** et la **visibilité** des écritures pour le thread suivant.
@@ -143,7 +143,7 @@ Un `Semaphore` est un **compteur de permis**. `acquire()` prend un permis (ou bl
 
 ---
 
-## 2. `CountDownLatchDemo` : attendre la fin de N événements
+## 3. `CountDownLatchDemo` : attendre la fin de N événements
 
 ### Notion
 Un `CountDownLatch` est un **compteur à usage unique**. Des threads appellent `countDown()` pour le décrémenter ; ceux qui ont appelé `await()` sont bloqués jusqu'à ce qu'il atteigne **0**. Une fois à 0, il reste ouvert pour toujours.
@@ -183,7 +183,7 @@ Après le dernier `countDown()`, `main` est libéré tout de suite et son messag
 
 ---
 
-## 3. `CyclicBarrierDemo` : se retrouver à chaque étape
+## 4. `CyclicBarrierDemo` : se retrouver à chaque étape
 
 ### Notion
 Une `CyclicBarrier` fait **attendre N threads les uns les autres** : chacun appelle `await()` et reste bloqué jusqu'à ce que les N soient arrivés. Elle se **réinitialise automatiquement** : elle sert pour plusieurs étapes de suite (« cyclique »).
@@ -230,7 +230,7 @@ Une `CyclicBarrier` fait **attendre N threads les uns les autres** : chacun appe
 
 ---
 
-## 4. `ExchangerDemo` : échanger une donnée à deux
+## 5. `ExchangerDemo` : échanger une donnée à deux
 
 ### Notion
 Un `Exchanger<V>` est un **point de rendez-vous pour exactement deux threads** : chacun appelle `exchange(sa_donnée)`, attend l'autre, puis reçoit la donnée de son partenaire. L'échange est atomique.

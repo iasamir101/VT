@@ -1,16 +1,16 @@
 # Structures de données thread-safe : fiches de révision
 
-Package racine : `fr.vt.simulation.threadclassique.structuresdonnees` (les packages `etap0_conchasmap` à `etape2_atomicreference` ci-dessous en sont des sous-packages).
+Package racine : `fr.vt.simulation.threadclassique.structuresdonnees` (les packages `etape1_atomicinteger` à `etape3_concurrenthashmap` ci-dessous en sont des sous-packages).
 
 Fil conducteur : **comment modifier une donnée partagée sans perdre d'écriture**. Les deux premières étapes le font avec le **CAS** (Compare-And-Swap) sur une variable ; la troisième l'applique à une map entière.
 
 | Étape | Package | Démo | Notion |
 |---|---|---|---|
-| 0 | `etap0_conchasmap` | `ConcurrentHashMapDemo` | `HashMap` vs `ConcurrentHashMap` |
 | 1 | `etape1_atomicinteger` | `AtomicIntegerDemo` | `AtomicInteger`, CAS sur un entier |
 | 2 | `etape2_atomicreference` | `AtomicReferenceDemo` | `AtomicReference`, CAS sur un objet |
+| 3 | `etape3_concurrenthashmap` | `ConcurrentHashMapDemo` | `HashMap` vs `ConcurrentHashMap` |
 
-L'ordre d'apprentissage conseillé est **1, 2 puis 0** :
+Les étapes sont numérotées dans l'ordre d'apprentissage conseillé :
 
 | Ordre | Notion | Pourquoi à cette place |
 |---|---|---|
@@ -108,7 +108,7 @@ Un `AtomicInteger` est un entier dont les opérations (`incrementAndGet`, `addAn
 
 ---
 
-## 0. `ConcurrentHashMapDemo` : une map partagée entre threads
+## 3. `ConcurrentHashMapDemo` : une map partagée entre threads
 
 ### Notion
 `HashMap` n'est **pas thread-safe**. Deux threads qui écrivent en même temps corrompent sa structure interne. `ConcurrentHashMap` est conçue pour des accès concurrents.
