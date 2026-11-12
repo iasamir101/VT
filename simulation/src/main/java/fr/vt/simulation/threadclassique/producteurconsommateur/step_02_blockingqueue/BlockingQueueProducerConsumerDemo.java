@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.producteurconsommateur.blockingqueue;
+package fr.vt.simulation.threadclassique.producteurconsommateur.step_02_blockingqueue;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -29,9 +29,9 @@ import java.util.concurrent.BlockingQueue;
  *
  * À observer : aucun wait/notify dans le code. Le consommateur s'arrête proprement à la réception de {@code -1}, sans être interrompu.
  *
- * Voir aussi : {@code producteurconsommateur.waitnotify} (version écrite à la main).
+ * Voir aussi : {@code producteurconsommateur.step_01_waitnotify} (version écrite à la main).
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.producteurconsommateur.blockingqueue.BlockingQueueProducerConsumerDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.producteurconsommateur.step_02_blockingqueue.BlockingQueueProducerConsumerDemo}
  */
 public class BlockingQueueProducerConsumerDemo {
 
@@ -39,16 +39,19 @@ public class BlockingQueueProducerConsumerDemo {
     static final int POISON_PILL = -1;
 
     public static void main(String[] args) throws InterruptedException {
+
         // File bornée à 5 éléments : le producteur est freiné si le consommateur prend du retard
         BlockingQueue<Integer> queue = new ArrayBlockingQueue<>(5);
 
-        Thread producer = new Thread(new Producer(queue));
-        Thread consumer = new Thread(new Consumer(queue));
+        Producer producer = new Producer(queue);
+        Consumer consumer = new Consumer(queue);
+
         producer.start();
         consumer.start();
 
         producer.join();
         consumer.join();
+
         System.out.println("Application terminée");
     }
 }

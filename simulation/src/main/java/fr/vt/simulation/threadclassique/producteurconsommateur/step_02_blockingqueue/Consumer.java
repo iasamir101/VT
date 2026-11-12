@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.producteurconsommateur.blockingqueue;
+package fr.vt.simulation.threadclassique.producteurconsommateur.step_02_blockingqueue;
 
 import java.util.concurrent.BlockingQueue;
 
@@ -11,7 +11,7 @@ import java.util.concurrent.BlockingQueue;
  *
  * Sortie : un message par élément consommé, puis "Consommateur : terminé".
  */
-class Consumer implements Runnable {
+class Consumer extends Thread {
 
     private final BlockingQueue<Integer> queue;
 

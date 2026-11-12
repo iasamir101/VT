@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.producteurconsommateur.waitnotify;
+package fr.vt.simulation.threadclassique.producteurconsommateur.step_01_waitnotify;
 
 /**
  * Thread consommateur de la démo wait/notify.

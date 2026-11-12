@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.producteurconsommateur.waitnotify;
+package fr.vt.simulation.threadclassique.producteurconsommateur.step_01_waitnotify;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -19,6 +19,7 @@ class BoundedBuffer {
     private final Queue<Integer> queue = new LinkedList<>();
 
     synchronized void produce(int value) throws InterruptedException {
+
         // while et non if : au réveil, la condition peut être redevenue fausse
         // (autre thread passé avant, ou réveil intempestif)
         while (queue.size() == CAPACITY) {
@@ -32,6 +33,7 @@ class BoundedBuffer {
     }
 
     synchronized int consume() throws InterruptedException {
+
         while (queue.isEmpty()) {
             System.out.println("Buffer vide : consommateur en attente");
             wait();

@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.producteurconsommateur.blockingqueue;
+package fr.vt.simulation.threadclassique.producteurconsommateur.step_02_blockingqueue;
 
 import java.util.concurrent.BlockingQueue;
 
@@ -11,7 +11,7 @@ import java.util.concurrent.BlockingQueue;
  *
  * Sortie : les valeurs 1 à 10 puis la poison pill ({@code -1}) dans la file ; un message par élément produit.
  */
-class Producer implements Runnable {
+class Producer extends Thread {
 
     private final BlockingQueue<Integer> queue;
 
