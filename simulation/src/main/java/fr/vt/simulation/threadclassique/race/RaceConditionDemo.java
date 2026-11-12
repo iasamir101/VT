@@ -1,5 +1,14 @@
 package fr.vt.simulation.threadclassique.race;
 
+
+/**
+ *
+ * Une race condition survient lorsque plusieurs threads manipulent une même variable partagée en même temps,
+ * et que le résultat final dépend de l'ordre imprévisible dans lequel le processeur exécute ces threads.
+ *
+ *
+ */
+
 /**
  * Démo race condition : deux threads incrémentent le même compteur sans aucune protection.
  *
