@@ -165,13 +165,151 @@ Fiche détaillée : [`README-lecteur-redacteur.md`](README-lecteur-redacteur.md)
 
 ## Questions d'entretien transversales
 
-1. **Qu'est-ce qu'une race condition ?** Plusieurs threads modifient une donnée partagée sans coordination ; le résultat dépend de l'entrelacement. Exemple : `counter++`.
-2. **`synchronized`, atomique ou verrou explicite ?** Une variable simple : atomique. Plusieurs variables liées : `synchronized` ou verrou. Besoin de timeout ou d'équité : verrou explicite.
-3. **Qu'est-ce que le CAS ?** Instruction atomique : écrire seulement si la valeur est celle attendue, sinon réessayer.
-4. **Pourquoi un pool plutôt qu'un thread par tâche ?** Coût de création, plafond de concurrence, réutilisation.
-5. **Que se passe-t-il sans `shutdown()` ?** La JVM ne s'arrête pas (threads du pool non daemon).
-6. **`Future` ou `CompletableFuture` ?** `Future.get()` bloque ; `CompletableFuture` permet de chaîner, combiner et gérer les erreurs sans bloquer.
-7. **`CountDownLatch` ou `CyclicBarrier` ?** Latch : usage unique, des threads attendent que d'autres décomptent. Barrière : réutilisable, les mêmes threads s'attendent entre eux.
-8. **Pourquoi `wait()` dans un `while` ?** La condition peut être redevenue fausse au réveil (autre thread passé avant, réveil intempestif).
-9. **Pourquoi préférer `BlockingQueue` à `wait/notify` ?** Moins de code, moins de bugs, contre-pression native, timeouts, arrêt propre.
-10. **Quand utiliser un `ReadWriteLock` ou un `StampedLock` ?** Lectures nombreuses et longues, écritures rares ; `StampedLock` seulement si le gain est mesuré (non réentrant, plus délicat).
+Questions fréquentes, regroupées par thème, avec une réponse type. Les renvois entre parenthèses indiquent la démo ou la fiche qui l'illustre.
+
+### A. Fondamentaux
+
+1. **Quelle est la différence entre un processus et un thread ?**
+   Un processus a son propre espace mémoire et ses ressources (isolé des autres). Les threads d'un même processus **partagent** la mémoire (le tas) mais ont chacun leur pile et leur compteur d'instruction. Partager la mémoire rend les threads légers et rapides à communiquer, mais crée les problèmes de concurrence (race conditions, visibilité).
+
+2. **Quelle est la différence entre `start()` et `run()` ?**
+   `start()` crée un **nouveau thread** qui exécute `run()`. Appeler `run()` directement exécute le code dans le thread **appelant**, sans aucun parallélisme. Appeler `start()` deux fois lève `IllegalThreadStateException`.
+
+3. **Qu'est-ce qu'une race condition ?**
+   Plusieurs threads lisent et modifient une donnée partagée sans coordination ; le résultat dépend de l'ordre d'entrelacement, donc il est imprévisible. Exemple : `counter++` fait trois étapes (lire, ajouter, écrire) et perd des incréments (`RaceConditionDemo`). Elle est **probabiliste** : un test qui passe ne prouve rien.
+
+4. **Quels sont les trois problèmes de la concurrence en Java ?**
+   **Atomicité** (une opération composée peut être entrecoupée, comme `counter++`), **visibilité** (un thread peut ne pas voir l'écriture d'un autre, à cause des caches et du réordonnancement) et **ordre** (le compilateur et le processeur peuvent réordonner les instructions). `synchronized`, `volatile` et les atomiques traitent ces problèmes à des degrés différents.
+
+5. **Que fait `volatile`, et qu'est-ce qu'il ne fait pas ?**
+   Il garantit la **visibilité** (une écriture est vue par les lectures suivantes) et interdit certains réordonnancements. Il ne rend **pas atomique** une opération composée : `volatile int x; x++` perd toujours des incréments. À utiliser pour un indicateur simple (`volatile boolean arret`), pas pour un compteur.
+
+6. **Qu'est-ce que la relation « happens-before » ?**
+   Une garantie du modèle mémoire Java : si l'action A *happens-before* B, alors B voit les effets de A. Exemples : la libération d'un verrou précède son acquisition suivante ; une écriture `volatile` précède la lecture suivante ; `start()` précède le début du thread ; la fin d'un thread précède le retour de son `join()`. C'est pourquoi `main` voit les écritures des threads après `join()`.
+
+7. **Qu'est-ce qu'un deadlock, et comment l'éviter ?**
+   Des threads s'attendent mutuellement pour toujours. Quatre conditions réunies : **exclusion mutuelle**, **détention et attente** (on garde un verrou en en demandant un autre), **pas de préemption** et **attente circulaire**. Pour l'éviter : prendre les verrous toujours dans le **même ordre**, réduire le nombre de verrous, utiliser `tryLock(délai)` pour abandonner, ne pas appeler de code inconnu sous verrou. Un `jstack` ou un `jcmd <pid> Thread.print` signale les deadlocks. *(Pas encore de démo dans le projet.)*
+
+8. **Quelle différence entre deadlock, livelock et famine ?**
+   Deadlock : les threads sont **bloqués** pour toujours. Livelock : ils **travaillent** sans avancer (ils se cèdent mutuellement le passage et recommencent). Famine : un thread n'obtient jamais la ressource parce que d'autres passent toujours avant (par exemple un rédacteur face à un flot de lecteurs).
+
+9. **Qu'est-ce qu'un thread daemon ?**
+   Un thread de service que la JVM n'attend pas : la JVM s'arrête quand il ne reste que des threads daemon. Les threads d'un pool fixe sont **non daemon** (sans `shutdown()` le programme ne se termine pas) ; ceux du pool commun de `CompletableFuture` sont **daemon** (sans `join()` la tâche peut ne jamais s'exécuter).
+
+10. **Comment fonctionne l'interruption d'un thread ?**
+    Elle est **coopérative** : `interrupt()` positionne un indicateur, il n'arrête pas le thread. Les méthodes bloquantes (`sleep`, `wait`, `take`, `await`…) lèvent `InterruptedException` et **effacent** l'indicateur. Bonne pratique : ne jamais ignorer l'exception ; soit la propager, soit restaurer le statut avec `Thread.currentThread().interrupt()` avant de sortir.
+
+11. **Quelle différence entre `sleep()`, `wait()` et `join()` ?**
+    `sleep(ms)` suspend le thread et **ne relâche aucun verrou**. `wait()` (dans un bloc `synchronized`) **relâche le verrou** et attend un `notify`. `join()` attend la **fin** d'un autre thread.
+
+12. **Qu'est-ce qu'une classe thread-safe, et comment en obtenir une ?**
+    Une classe qui reste correcte sous accès concurrents sans synchronisation supplémentaire de l'appelant. Par ordre de préférence : **ne pas partager** (données locales au thread), objets **immuables**, structures **concurrentes** de la bibliothèque, puis synchronisation explicite.
+
+### B. Synchronisation
+
+13. **`synchronized`, atomique ou verrou explicite : comment choisir ?**
+    Une seule variable simple : un **atomique**. Plusieurs variables qui doivent rester cohérentes : `synchronized` ou un verrou. Besoin de `tryLock`, de timeout, d'interruption ou d'équité : verrou explicite (`ReentrantLock`).
+
+14. **Que garantit `synchronized` ?**
+    L'**exclusion mutuelle** (un seul thread à la fois par verrou) et la **visibilité** (les écritures faites sous le verrou sont vues par le thread suivant qui prend le même verrou). Sur une méthode d'instance le verrou est `this`, sur une méthode `static` c'est la classe. Il est **réentrant** et libéré automatiquement, même en cas d'exception.
+
+15. **`synchronized` ou `ReentrantLock` ?**
+    `ReentrantLock` ajoute `tryLock()`, le timeout, `lockInterruptibly()`, le mode équitable et plusieurs `Condition`, au prix d'un `unlock()` **obligatoire dans un `finally`**. `synchronized` est plus simple et plus sûr ; on préfère donc `synchronized` tant qu'on n'a pas besoin de ces fonctions.
+
+16. **Quelle différence entre un `Semaphore` et `synchronized` ?**
+    `synchronized` laisse entrer **un** thread et a un **propriétaire** (seul le détenteur libère). `Semaphore` laisse entrer **N** threads et n'a **pas de propriétaire** : n'importe quel thread peut faire `release()`, ce qui peut créer des permis en trop. `release()` va dans un `finally`. (`SemaphoreParkingDemo`)
+
+17. **`CountDownLatch` ou `CyclicBarrier` ?**
+    Latch : **usage unique**, des threads attendent que d'autres décomptent (ceux qui décomptent ne sont pas bloqués). Barrière : **réutilisable**, les mêmes N threads s'attendent entre eux, avec une action de barrière. Un thread qui échoue **casse** la barrière (`BrokenBarrierException`) ; si un ouvrier oublie `countDown()`, le latch bloque `await()` pour toujours (d'où le `finally`). (`CountDownLatchDemo`, `CyclicBarrierDemo`)
+
+18. **À quoi sert un `Exchanger` ?**
+    À échanger une donnée entre **exactement deux** threads à un point de rendez-vous. Cas typique : le *double buffering* (un thread remplit un tampon pendant que l'autre vide le précédent, puis ils échangent). (`ExchangerDemo`)
+
+19. **Pourquoi `wait()` dans un `while` et non dans un `if` ?**
+    Au réveil, la condition peut être redevenue fausse : un autre thread est passé avant, ou le réveil est **intempestif** (*spurious wakeup*, permis par la spécification). Avec `while`, on retest la condition à chaque réveil.
+
+20. **`notify()` ou `notifyAll()` ?**
+    `notifyAll()` par défaut. Avec `notify()`, on réveille un seul thread au hasard, qui peut être le mauvais (un consommateur alors que le tampon est vide) : le programme se bloque. `wait`, `notify` et `notifyAll` exigent de détenir le moniteur, sinon `IllegalMonitorStateException`.
+
+### C. Structures de données et atomiques
+
+21. **Qu'est-ce que le CAS (Compare-And-Swap) ?**
+    Une instruction atomique du processeur : « écrire la nouvelle valeur **seulement si** la valeur actuelle est celle attendue, sinon échouer ». On l'utilise en **boucle** : lire, calculer, `compareAndSet`, recommencer en cas d'échec. Aucun thread n'est bloqué (algorithmes *lock-free*). (`AtomicIntegerDemo`, `AtomicReferenceDemo`)
+
+22. **Qu'est-ce que le problème ABA ?**
+    La valeur passe de A à B puis revient à A entre la lecture et le CAS : le CAS réussit sans voir le changement intermédiaire. Solution : ajouter un numéro de version avec `AtomicStampedReference`. De plus `compareAndSet` sur une référence compare par `==` (identité), pas avec `equals()`.
+
+23. **`AtomicInteger`, `synchronized` ou `LongAdder` pour un compteur ?**
+    `AtomicInteger` : sans verrou, adapté à **une** variable. `synchronized` : si plusieurs variables doivent rester cohérentes. `LongAdder` : sous **forte contention** (métriques), il répartit les écritures sur plusieurs cellules et est plus rapide, mais `sum()` n'est pas un instantané atomique.
+
+24. **Pourquoi une `HashMap` perd-elle des données avec des clés différentes ?**
+    Les threads partagent sa **structure interne** (tableau de cases, chaînage, redimensionnement) : deux `put()` simultanés peuvent écraser le chaînage l'un de l'autre, ou tomber pendant un redimensionnement dont les entrées recopiées disparaissent. (`ConcurrentHashMapDemo`)
+
+25. **`ConcurrentHashMap` est thread-safe : `get()` puis `put()` est-il sûr ?**
+    Non. Chaque appel est atomique, pas l'**enchaînement** (*check-then-act*) : deux threads peuvent lire la même valeur et l'un écrase l'autre. Utiliser les opérations atomiques `merge`, `compute`, `computeIfAbsent`, `putIfAbsent`, par exemple `map.merge(clé, 1, Integer::sum)` pour compter.
+
+26. **`ConcurrentHashMap`, `Hashtable` ou `Collections.synchronizedMap` ?**
+    `Hashtable` et `synchronizedMap` utilisent **un seul verrou** pour toute la map : tout est sérialisé. `ConcurrentHashMap` verrouille **par case** (et utilise le CAS), lit **sans verrou** et se redimensionne à plusieurs threads : bien plus scalable. Particularités : ni clé ni valeur `null`, `size()` approximatif, itérateurs « faiblement cohérents » (pas de `ConcurrentModificationException`).
+
+### D. Pools de threads et futures
+
+27. **Pourquoi un pool plutôt qu'un thread par tâche ?**
+    Créer un thread coûte cher (mémoire, ordonnancement) et ne plafonne pas la concurrence. Un pool **réutilise** N threads, borne le parallélisme et sépare *quoi faire* (la tâche) de *comment l'exécuter*. (`FixedThreadPoolDemo`)
+
+28. **Que se passe-t-il sans `shutdown()` ? Et quelle est la différence avec `shutdownNow()` ?**
+    Sans `shutdown()`, les threads du pool (non daemon) gardent la JVM en vie : le programme ne se termine pas. `shutdown()` refuse les nouvelles tâches et laisse finir celles déjà soumises ; `shutdownNow()` tente d'**interrompre** les tâches en cours et renvoie la liste de celles qui n'ont pas démarré ; `awaitTermination(délai)` attend la fin effective.
+
+29. **Quel est le piège de `Executors.newFixedThreadPool` ?**
+    Sa file d'attente est **non bornée** : si les tâches arrivent plus vite qu'elles ne sont traitées, la file grossit jusqu'à `OutOfMemoryError`. En production, on crée un `ThreadPoolExecutor` avec une file **bornée** et une politique de rejet explicite.
+
+30. **Quels sont les paramètres d'un `ThreadPoolExecutor` ?**
+    `corePoolSize` (threads gardés), `maximumPoolSize`, `keepAliveTime`, la **file de travail**, une `ThreadFactory` (noms des threads) et un `RejectedExecutionHandler`. Ordre de remplissage : d'abord les threads *core*, puis la **file**, puis seulement des threads supplémentaires jusqu'au maximum, puis le rejet. Avec une file non bornée, le maximum n'est jamais atteint.
+
+31. **Comment dimensionner un pool ?**
+    Tâches **CPU** : à peu près le nombre de cœurs (`availableProcessors()`, parfois +1). Tâches **bloquantes** (réseau, disque, BDD) : plus de threads, environ `cœurs × (1 + temps d'attente / temps de calcul)`, à **mesurer**. Utiliser un pool distinct par type de travail.
+
+32. **Quelle différence entre `submit()` et `execute()` ?**
+    `submit()` renvoie un `Future` et **capture** l'exception dans le `Future` (perdue si personne n'appelle `get()`). `execute()` prend un `Runnable` et laisse l'exception remonter au thread.
+
+33. **`Runnable` ou `Callable` ?**
+    `Callable` renvoie une valeur et peut lever une exception vérifiée ; `Runnable` ne renvoie rien. `submit(callable)` donne un `Future<V>`. (`CallableFutureDemo`)
+
+34. **`Future` ou `CompletableFuture` ?**
+    `Future.get()` **bloque** et on ne peut ni chaîner ni combiner sans bloquer. `CompletableFuture` permet de chaîner (`thenApply`, `thenAccept`, `thenRun`), combiner (`thenCombine`, `allOf`), gérer les erreurs (`exceptionally`, `handle`) et poser un timeout, sans bloquer entre les étapes.
+
+35. **`get()` ou `join()` ?**
+    Les deux attendent le résultat. `get()` lève des exceptions **vérifiées** (`InterruptedException`, `ExecutionException`) ; `join()` lève `CompletionException`, **non vérifiée**, plus pratique dans les lambdas. Dans les deux cas, la cause d'origine est dans `getCause()`.
+
+36. **`thenApply` ou `thenCompose` ?**
+    `thenApply` quand la fonction renvoie une **valeur** (comme `map`). `thenCompose` quand elle renvoie elle-même un `CompletableFuture` : il « aplatit » et évite un `CompletableFuture<CompletableFuture<T>>` (comme `flatMap`). `thenAccept` consomme sans rien renvoyer ; `thenRun` réagit à la fin sans recevoir le résultat. (`CompletableFutureChainingDemo`)
+
+37. **Que se passe-t-il si une étape d'une chaîne `CompletableFuture` échoue ?**
+    Les étapes suivantes sont **sautées** et l'erreur ressort au `join()` (en `CompletionException`), sauf si `exceptionally` (valeur de secours) ou `handle` (résultat ou erreur) la traite avant. Sans `join()` ni traitement, l'échec reste **silencieux**.
+
+38. **Quel pool utilise `supplyAsync` par défaut, et quel est le risque ?**
+    Le `ForkJoinPool.commonPool()` : petit (environ cœurs − 1), **partagé** par toute l'application (et les streams parallèles) et composé de threads **daemon**. Il ne faut pas y mettre de tâches bloquantes : passer un `Executor` dédié en second paramètre.
+
+### E. Schémas classiques
+
+39. **Pourquoi préférer une `BlockingQueue` à `wait/notify` ?**
+    Moins de code, moins de bugs (pas de `while`/`notifyAll` à gérer), **contre-pression** native avec une file bornée, timeouts (`offer`, `poll`) et arrêt propre. `put()` bloque si la file est pleine, `take()` si elle est vide. (`BlockingQueueProducerConsumerDemo`)
+
+40. **Comment arrête-t-on proprement un consommateur ?**
+    Avec une **poison pill** (valeur spéciale envoyée dans la file, une **par consommateur**), par interruption du thread, ou avec un `poll(délai)` combiné à un indicateur `volatile`. Si le producteur plante avant d'envoyer la pill, le consommateur reste bloqué : prévoir un timeout.
+
+41. **Qu'est-ce que la contre-pression ?**
+    Le mécanisme qui **freine** le producteur quand le consommateur ne suit pas. Avec une file **bornée**, `put()` bloque quand elle est pleine, ce qui évite d'accumuler les éléments en mémoire.
+
+42. **Quand utiliser un `ReadWriteLock` ou un `StampedLock` ?**
+    Lectures **nombreuses et longues**, écritures rares. `ReentrantReadWriteLock` : plusieurs lecteurs **ou** un seul rédacteur, réentrant. `StampedLock` : ajoute la **lecture optimiste** (lire sans verrou puis `validate()`), plus rapide mais **non réentrant**, sans `Condition` et plus délicat : à n'utiliser que si le gain est **mesuré**. Sinon un simple `synchronized` suffit. (`ReadWriteLockDemo`, `StampedLockDemo`)
+
+43. **Peut-on passer d'un verrou de lecture à un verrou d'écriture ?**
+    Avec `ReentrantReadWriteLock`, **non** : un thread qui détient le verrou de lecture et demande celui d'écriture se bloque lui-même (deadlock). L'inverse (rétrogradation écriture vers lecture) est permis. Avec `StampedLock`, `tryConvertToWriteLock` permet la conversion.
+
+### F. En pratique
+
+44. **Comment diagnostiquer un problème de concurrence ?**
+    Donner des **noms** aux threads (utiles dans les logs), prendre un **thread dump** (`jstack <pid>` ou `jcmd <pid> Thread.print`) pour repérer un deadlock ou des threads bloqués, répéter les tests avec beaucoup d'itérations, et raisonner sur le code : une race condition est probabiliste, un test qui passe ne prouve rien.
+
+45. **Quelles règles générales pour écrire du code concurrent fiable ?**
+    Ne pas partager quand on peut (confinement, immuabilité) ; préférer les outils de haut niveau (`ExecutorService`, `BlockingQueue`, `ConcurrentHashMap`, atomiques) aux `wait/notify` ; libérer dans un **`finally`** (`unlock`, `release`, `countDown`, `shutdown`) ; toujours un **timeout** quand on attend un système externe ; ne pas ignorer `InterruptedException` ; garder les sections critiques courtes, sans I/O dedans.
