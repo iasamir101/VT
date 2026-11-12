@@ -1,6 +1,8 @@
-# Fiches de révision : pools, futures et ConcurrentHashMap
+# Fiches de révision : pools et futures
 
-Six démos de `threadclassique`, expliquées une par une : notion, déroulement, avantages, limites, astuces, bonnes pratiques et points à retenir.
+Package racine : `fr.vt.simulation.threadclassique` (la colonne « Package » ci-dessous est relative à cette racine).
+
+Cinq démos, expliquées une par une : notion, déroulement, avantages, limites, astuces, bonnes pratiques et points à retenir.
 
 | Démo | Package | Notion |
 |---|---|---|
@@ -9,7 +11,6 @@ Six démos de `threadclassique`, expliquées une par une : notion, déroulement,
 | [`CompletableFutureRunAsyncDemo`](#3-completablefuturerunasyncdemo--tâche-asynchrone-sans-résultat) | `executor.etape3_completablefuture` | `runAsync`, pool commun |
 | [`CompletableFutureSupplyAsyncDemo`](#4-completablefuturesupplyasyncdemo--tâche-asynchrone-avec-résultat) | `executor.etape3_completablefuture` | `supplyAsync`, `join()` |
 | [`CompletableFutureChainingDemo`](#5-completablefuturechainingdemo--enchaîner-les-étapes) | `executor.etape3_completablefuture` | `thenApply`, `thenAccept`, `thenRun` |
-| [`ConcurrentHashMapDemo`](#6-concurrenthashmapdemo--une-map-partagée-entre-threads) | `collections` | `HashMap` vs `ConcurrentHashMap` |
 
 Commande pour lancer une démo (depuis `simulation/`) :
 
@@ -17,7 +18,7 @@ Commande pour lancer une démo (depuis `simulation/`) :
 mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.<package>.<Demo>
 ```
 
-Les cinq premières démos forment une progression, reflétée par les packages `etape1_pool`, `etape2_callablefuture` et `etape3_completablefuture` : **pool de threads**, puis **résultat d'une tâche** (`Future`), puis **résultat sans bloquer** (`CompletableFuture`), puis **enchaînement des étapes**.
+Les cinq démos forment une progression, reflétée par les packages `etape1_pool`, `etape2_callablefuture` et `etape3_completablefuture` : **pool de threads**, puis **résultat d'une tâche** (`Future`), puis **résultat sans bloquer** (`CompletableFuture`), puis **enchaînement des étapes**.
 
 ---
 
@@ -250,52 +251,6 @@ Avec `Future`, il faut bloquer (`get()`) pour utiliser un résultat. Avec `Compl
 
 ---
 
-## 6. `ConcurrentHashMapDemo` : une map partagée entre threads
-
-### Notion
-`HashMap` n'est **pas thread-safe**. Deux threads qui écrivent en même temps corrompent sa structure interne. `ConcurrentHashMap` est conçue pour des accès concurrents.
-
-### Déroulement
-1. Deux threads insèrent chacun 100 000 clés **différentes** (0 à 99 999 pour l'un, 100 000 à 199 999 pour l'autre).
-2. On attend les deux avec `join()`, puis on lit `map.size()`.
-3. Résultat sur la `HashMap` : **moins de 200 000** clés, et la valeur change à chaque exécution (exemple : 183 679). Parfois une exception.
-4. Résultat sur la `ConcurrentHashMap` : toujours **200 000**.
-
-### Pourquoi la `HashMap` perd des données alors que les clés sont distinctes
-Les threads n'écrivent pas la même clé, mais ils partagent la **structure interne** (tableau de cases, chaînage, redimensionnement). Deux `put()` simultanés peuvent :
-- viser la même case, et l'un écrase le chaînage de l'autre ;
-- tomber pendant un **redimensionnement** : des entrées sont recopiées dans l'ancien tableau et disparaissent.
-
-`ConcurrentHashMap` verrouille **par case** (et gère le redimensionnement à plusieurs threads) : aucune insertion perdue.
-
-### Avantages
-- Lectures sans verrou, écritures sur des cases différentes en parallèle : bien plus scalable qu'une map entièrement verrouillée.
-- Opérations atomiques prêtes à l'emploi : `putIfAbsent`, `computeIfAbsent`, `compute`, `merge`.
-- Les itérateurs ne lèvent pas `ConcurrentModificationException` (ils sont « faiblement cohérents »).
-
-### Limites
-- **Chaque appel est atomique, pas un enchaînement d'appels.** `get()` puis `put()` reste une race condition (check-then-act) : deux threads peuvent lire la même valeur et l'un écrase l'autre. Avec un compteur, on perd des incréments. La solution est `map.merge(clé, 1, Integer::sum)`, atomique.
-- Pas de clé ni de valeur `null` (`NullPointerException`).
-- `size()` et les itérations sont des **instantanés approximatifs** si la map change en même temps.
-- Pas de verrou exposé pour verrouiller plusieurs opérations ensemble.
-
-### Astuces
-- Pour compter : `merge(clé, 1, Integer::sum)`. Pour un compteur très disputé, `LongAdder` en valeur : `map.computeIfAbsent(k, x -> new LongAdder()).increment()`.
-- Pour initialiser paresseusement : `computeIfAbsent(clé, k -> créer())`.
-- Pourquoi la démo marche : beaucoup d'opérations (100 000 par thread) et **aucun `println`** dans la boucle. Avec peu d'opérations, un thread finit avant que l'autre démarre. Un `println` est synchronisé et ralentit tellement les threads qu'ils ne se chevauchent presque plus.
-- Une démo sans perte de données ne prouve pas que le code est correct : une race condition est probabiliste.
-
-### Bonnes pratiques
-- Toute map partagée entre threads en écriture : `ConcurrentHashMap`, pas `HashMap`.
-- Jamais de `if (!map.containsKey(k)) map.put(k, v)` : utiliser `putIfAbsent` ou `computeIfAbsent`.
-- Garder les fonctions passées à `compute*` / `merge` **courtes**, sans effet de bord et sans appel à la même map : elles s'exécutent sous verrou.
-- `Collections.synchronizedMap` fonctionne, mais un seul verrou pour toute la map : moins performant.
-
-### À retenir
-> `HashMap` + threads = données perdues même avec des clés distinctes. `ConcurrentHashMap` protège **chaque appel**, pas la séquence d'appels : utiliser `merge` / `compute` / `putIfAbsent`.
-
----
-
 ## Comparatif rapide : choisir le bon outil
 
 | Besoin | Outil |
@@ -306,7 +261,6 @@ Les threads n'écrivent pas la même clé, mais ils partagent la **structure int
 | Lancer plusieurs `Callable` d'un coup et attendre qu'ils soient tous finis | `invokeAll` |
 | Lancer un calcul, enchaîner, combiner, gérer les erreurs | `CompletableFuture.supplyAsync` + `thenXxx` |
 | Transformer / consommer / réagir à un résultat sans bloquer | `thenApply` / `thenAccept` / `thenRun` |
-| Partager une map entre threads | `ConcurrentHashMap` |
 
 | | `Future` | `CompletableFuture` |
 |---|---|---|
@@ -324,9 +278,7 @@ Les threads n'écrivent pas la même clé, mais ils partagent la **structure int
 4. **`execute` ou `submit` ?** `submit` renvoie un `Future` et capture l'exception ; `execute` non.
 5. **Quel est le défaut de `get()` ?** Il bloque ; d'où `CompletableFuture`.
 6. **Quel pool utilise `supplyAsync` par défaut, et quel est le risque ?** Le pool commun (daemon, petit, partagé) : ne pas y mettre de tâches bloquantes.
-7. **`ConcurrentHashMap` est thread-safe : `get` puis `put` est-il sûr ?** Non (check-then-act) : utiliser `merge`, `compute` ou `putIfAbsent`.
-8. **Pourquoi `HashMap` perd des données avec des clés différentes ?** Structure interne partagée et redimensionnement concurrent.
-9. **Différence entre `submit` et `invokeAll` ?** `submit` rend la main tout de suite pour une tâche ; `invokeAll` soumet une collection et bloque jusqu'à ce que toutes soient finies.
-10. **Différence `thenApply` / `thenAccept` / `thenRun` ?** Transformer le résultat / le consommer sans rien renvoyer / réagir à la fin sans le recevoir.
-11. **`thenApply` ou `thenCompose` ?** `thenApply` quand la fonction renvoie une valeur ; `thenCompose` quand elle renvoie un `CompletableFuture` (évite l'imbrication).
-12. **Que se passe-t-il si une étape de la chaîne échoue ?** Les étapes suivantes sont sautées et l'erreur ressort au `join()` en `CompletionException`, sauf si `exceptionally` ou `handle` la traite.
+7. **Différence entre `submit` et `invokeAll` ?** `submit` rend la main tout de suite pour une tâche ; `invokeAll` soumet une collection et bloque jusqu'à ce que toutes soient finies.
+8. **Différence `thenApply` / `thenAccept` / `thenRun` ?** Transformer le résultat / le consommer sans rien renvoyer / réagir à la fin sans le recevoir.
+9. **`thenApply` ou `thenCompose` ?** `thenApply` quand la fonction renvoie une valeur ; `thenCompose` quand elle renvoie un `CompletableFuture` (évite l'imbrication).
+10. **Que se passe-t-il si une étape de la chaîne échoue ?** Les étapes suivantes sont sautées et l'erreur ressort au `join()` en `CompletionException`, sauf si `exceptionally` ou `handle` la traite.
