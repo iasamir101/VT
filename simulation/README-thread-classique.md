@@ -2,7 +2,7 @@
 
 Package racine : `fr.vt.simulation.threadclassique`
 
-Ce document résume les six fiches de révision du projet et donne un **ordre d'apprentissage global**. Chaque section dit : le problème, les outils, ce qu'il faut retenir, et renvoie à la fiche détaillée.
+Ce document résume les sept fiches de révision du projet et donne un **ordre d'apprentissage global**. Chaque section dit : le problème, les outils, ce qu'il faut retenir, et renvoie à la fiche détaillée.
 
 | Thème | Package | Fiche détaillée |
 |---|---|---|
@@ -12,6 +12,7 @@ Ce document résume les six fiches de révision du projet et donne un **ordre d'
 | Pools de threads et futures | `executor.*` | [`README-pools-et-futures.md`](README-pools-et-futures.md) |
 | Producteur / consommateur | `producteurconsommateur.*` | [`README-producteur-consommateur.md`](README-producteur-consommateur.md) |
 | Lecteurs / rédacteurs | `lecteurredacteur.*` | [`README-lecteur-redacteur.md`](README-lecteur-redacteur.md) |
+| Réimplémenter les outils (bibliothèque maison) | `mylib` + `mylib.etapeN_*` | [`README-mylib.md`](README-mylib.md) |
 
 Lancer une démo (depuis `simulation/`) :
 
@@ -33,6 +34,7 @@ Convention : les sous-packages d'un parcours s'appellent `etapeN_nom`, numérot�
 | 4 | **Pools et futures** | Après avoir compris la coordination, on cesse de créer des threads à la main : on les confie à un pool. |
 | 5 | **Producteur / consommateur** | Premier schéma classique, d'abord à la main (`wait/notify`), puis avec une `BlockingQueue`. |
 | 6 | **Lecteurs / rédacteurs** | Schéma où les lectures dominent : verrous de lecture et d'écriture, puis lecture optimiste. |
+| 7 | **mylib** | Une fois les outils maîtrisés, on les réécrit soi-même : d'abord un entier atomique pair (verrou, sémaphore et file bloquante viendront ensuite). |
 
 Pas encore couverts par une démo : tous les sujets **virtual threads**.
 
@@ -156,6 +158,24 @@ Fiche détaillée : [`README-lecteur-redacteur.md`](README-lecteur-redacteur.md)
 - Pas de montée de verrou lecture vers écriture (le thread se bloque lui-même).
 - `unlock()` dans un **`finally`** : un verrou explicite n'est pas libéré automatiquement.
 - `StampedLock` : **non réentrant**, sans `Condition`, plus délicat ; rentable seulement si les écritures sont rares et si le gain est **mesuré**.
+
+---
+
+## 7. mylib : réimplémenter les outils
+
+Fiche détaillée : [`README-mylib.md`](README-mylib.md)
+
+**Problème.** Savoir utiliser `Semaphore` ou `BlockingQueue` ne suffit pas en entretien : il faut savoir les **écrire**. On reconstruit chaque outil en couches, chacun reposant sur le précédent. Les méthodes sont à compléter (`TODO`), et chaque démo affiche `OK` ou `ÉCHEC`.
+
+| Étape | Package | Démo | Idée |
+|---|---|---|---|
+| 1 | `etape1_atomicpair` | `AtomicPairDemo` | `MyAtomicPairInteger` : `AtomicInteger` maison toujours **pair** (+2 par incrément), écritures `synchronized`, lecture `volatile` sans verrou. |
+
+Suite prévue (plus tard, voir `PLAN-mylib.md`) : `MyLocker`, `MySemaphore`, `MyConcurrentQueue`.
+
+**À retenir**
+- Un invariant (« toujours pair ») se protège en **une seule** opération atomique : deux opérations atomiques à la suite ne sont pas atomiques.
+- `volatile` donne la visibilité, pas l'atomicité.
 
 ---
 

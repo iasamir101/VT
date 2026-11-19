@@ -1,0 +1,219 @@
+
+CAS : Compare-And-Swap 
+ 
+--------------------------------------------------------------------------------
+1-RaceCondition
+--------------------------------------------------------------------------------
+
+Une race condition apparaît quand plusieurs threads lisent et modifient la même donnée partagée sans coordination, et que le résultat dépend de l'ordre dans lequel ils s'entrelacen
+
+--------------------------------------------------------------------------------
+2-Semaphore	? Combien de threads peuvent entrer en même temps ?
+--------------------------------------------------------------------------------
+
+limiter le nombre d'accès simultanés
+
+Un Semaphore est un compteur de permis. 
+ - acquire() prend un permis (ou bloque s'il n'en reste aucun)
+ - release() en rend un.
+ - Semaphore parking = new Semaphore(3); trois threads au plus sont dans la zone protégée en même temps.
+
+--------------------------------------------------------------------------------
+3-Synchronized ? Comment n'avoir qu'un seul thread à la fois dans une section ?
+--------------------------------------------------------------------------------
+l'exclusion mutuelle
+ 
+un seul thread à la fois peut entrer dans les blocs ou méthodes protégés par le même verrou 
+
+private static synchronized void increment()
+
+--------------------------------------------------------------------------------
+4-CountDownLatch ? Comment attendre que N événements soient terminés ?
+--------------------------------------------------------------------------------
+attendre la fin de N événements
+
+- les threads appellent countDown() pour le décrémenter
+- ceux qui ont appelé await() sont bloqués jusqu'à ce qu'il atteigne 0
+- CountDownLatch latch = new CountDownLatch(10);
+
+--------------------------------------------------------------------------------
+5-CyclicBarrier		? Comment faire attendre N threads les uns les autres ?
+--------------------------------------------------------------------------------
+
+Une CyclicBarrier fait attendre N threads les uns les autres : 
+chacun appelle await() et reste bloqué jusqu'à ce que les N soient arrivés. 
+
+Elle se réinitialise automatiquement : elle sert pour plusieurs étapes de suite (« cyclique »).
+
+aucun thread ne passe à l'étape N+1 avant que le plus lent ait fini l'étape N.
+
+CountDown à plusieurs niveau 
+
+await() est utilisé pour attendre 
+
+--------------------------------------------------------------------------------
+6-Exchanger		? Comment deux threads s'échangent-ils une donnée ?
+--------------------------------------------------------------------------------
+échanger une donnée à deux
+
+*AtomicInteger: un compteur sans verrou
+-->  CAS (Compare-And-Swap) sur un entier
+incrementAndGet
+
+*AtomicReference<V> applique le CAS à une référence : 
+compareAndSet(attendu, nouveau) remplace la référence seulement
+si elle est toujours celle qu'on a lue. 
+
+statut.compareAndSet va renvoyer false si impossible de changer ( la valeur a été changé)
+--------------------------------------------------------------------------------
+7-FixedThreadPool
+--------------------------------------------------------------------------------
+
+ExecutorService executor = Executors.newFixedThreadPool(3);
+
+.newFixedThreadPool(3) crée un pool. Les threads sont créés à la demande, jusqu'à 3,
+executor.submit(tâche) dépose la tâche dans une file d'attente 
+.shutdown() ferme le pool -- elle attend la fin de derniers thread 
+
+--> shutdown obligatoire car 
+- La JVM ne s'arrête que s'il ne reste que des threads daemon.
+- le thread de pool sont  : non daemon 
+- main non daemon
+
+Avec N tâches bloquées, plus rien ne passe (famine).
+
+--------------------------------------------------------------------------------
+8-CallableFuture
+--------------------------------------------------------------------------------
+
+  ExecutorService executor = Executors.newFixedThreadPool(3);
+  Callable<Integer> task1 = () -> {}
+  Future<Integer> future1 = executor.submit(task1);
+  future1.get() // bloque jusqu'a la recupération
+  finallly :  executor.shutdown();
+  
+  (executor.invokeAll(collection()) pour le submit multiple)
+  
+--------------------------------------------------------------------------------
+9- CompletableFuture   :  
+--------------------------------------------------------------------------------
+1/tâche asynchrone sans résultat
+
+CompletableFuture<Void> future = CompletableFuture.runAsync(
+future.join();
+
+2/tâche asynchrone avec résultat
+
+CompletableFuture<Integer> future = CompletableFuture.supplyAsync(
+future.join();
+
+3/enchainement
+
+CompletableFuture<Void> future = CompletableFuture
+		.supplyAsync(() -> produceValue())
+		.thenApply(x -> doubleValue(x))
+		.thenAccept(x -> print("thenAccept  ", x))
+		.thenRun(() -> System.out.println("thenRun      : chaîne terminée"));
+
+--------------------------------------------------------------------------------
+10-deadloack
+--------------------------------------------------------------------------------
+
+les deux threads sont BLOCKEd pour toujours (chacun attend un verrou que l'autre  detient)
+
+synchronized (from) {
+synchronized (to) {
+	from.withdraw(amount);
+	to.deposit(amount);
+   }
+}
+
+Un deadlock n'est possible que si les quatre conditions sont réunies  : Les 4 conditions de Coffman
+Exclusion mutuelle ---> ressource partgé
+Détention et attente --> garder le verrou sur la resource
+Pas de préemption --> impossible de retirer le verrou
+Attente circulaire	--> les deux point sont en circulaire
+
+
+solution : casser l'un de ces conditions
+1 - donner un identifiant d'ordre au objet muxtex
+2 - tryLock : on retente on attendant un delais aleatoires
+              on peut par exemple faire 5 retry
+			  
+pour refaire le retry 
+on a besoin d'un variable 
+
+ReentrantLock lock() {
+	return lock;
+}
+
+dans la resource partage 	
+Ceci sert à un clé pour verrouier 
+
+* lock.unlock();
+* from.lock()
+
+--------------------------------------------------------------------------------
+11-producer consumer 
+--------------------------------------------------------------------------------
+entres : une seulefile de produit
+conditions : on ajoute à la fin et on recupere de la fin
+blocage : en cas de repture de strock pour le lecteur, en cas stock plein pour lme prod
+
+1/solution classique : 
+
+
+ private static final int CAPACITY = 5
+ private final Queue<Integer> queue = new LinkedList<>();
+ 
+ producer :
+ 
+ while (queue.size() == CAPACITY) { wait(); }
+ else :  queue.add(value); notifyAll();
+ 
+ consumer 
+ 
+ while (queue.isEmpty()) 
+ else
+   queue.poll();notifyAll();
+   
+ 
+1/solution moderne brtoker  : 
+
+utilsier BlockingQueue qui gere, au lieu de quee
+
+ queue.put(i); produire 
+ queue.take(); consommer
+ 
+inserer une valeur spéciale pour indiquer qu'il n'y aura plus rien  POISON_PILL = -1
+
+--------------------------------------------------------------------------------
+12-reader writer 
+--------------------------------------------------------------------------------
+
+entres : lecteurs redacteurs du meme livre
+conditions : 
+  un seul ecrivains au meme temps
+  plusieurs lecteur au meme temps
+  pas de lecture lros d'ecrtuture
+  
+stratgeie 1 ReentrantReadWriteLock  :verrou de lecture partagé, verrou d'écriture exclusif
+
+on utuilise 
+
+ReentrantReadWriteLock.readLock.lock //block seulement si un rédacteur détient le verrou d'écriture
+ReentrantReadWriteLock.readLock.unlock
+ReentrantReadWriteLock.writeLock.lock // attend que tous les lecteurs et rédacteurs en cours aient terminé
+ReentrantReadWriteLock.writeLock.unlock
+
+
+2-stratgeie 2 StampedLock  :  
+ lecture optimiste = lire sans verrou, validate(), et relire sous readLock en cas d'échec. 
+ Plus rapide si les écritures sont rares, mais non réentrant et plus délicat.
+
+
+
+
+
+
+
