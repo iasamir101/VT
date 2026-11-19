@@ -2,11 +2,12 @@
 
 Package racine : `fr.vt.simulation.threadclassique`
 
-Ce document résume les cinq fiches de révision du projet et donne un **ordre d'apprentissage global**. Chaque section dit : le problème, les outils, ce qu'il faut retenir, et renvoie à la fiche détaillée.
+Ce document résume les six fiches de révision du projet et donne un **ordre d'apprentissage global**. Chaque section dit : le problème, les outils, ce qu'il faut retenir, et renvoie à la fiche détaillée.
 
 | Thème | Package | Fiche détaillée |
 |---|---|---|
 | Synchronisation (race condition, `synchronized`, synchroniseurs) | `synchroniseurs.*` (de `etape0_race` à `etape5_exchanger`) | [`README-synchroniseurs.md`](README-synchroniseurs.md) |
+| Deadlock (détection, ordre global, `tryLock`) | `deadlock.*` (de `etape1_deadlock` à `etape3_trylock`) | [`README-deadlock.md`](README-deadlock.md) |
 | Structures de données thread-safe | `structuresdonnees.*` | [`README-structures-de-donnees.md`](README-structures-de-donnees.md) |
 | Pools de threads et futures | `executor.*` | [`README-pools-et-futures.md`](README-pools-et-futures.md) |
 | Producteur / consommateur | `producteurconsommateur.*` | [`README-producteur-consommateur.md`](README-producteur-consommateur.md) |
@@ -27,12 +28,13 @@ Convention : les sous-packages d'un parcours s'appellent `etapeN_nom`, numérot�
 | Ordre | Partie | Pourquoi à cette place |
 |---|---|---|
 | 1 | **Synchronisation** : étape 0 (race), puis étapes 1 à 5 | On commence par le **problème** (la race condition), puis les outils qui coordonnent les threads. |
-| 2 | **Structures de données** | Suite directe de la race condition : `AtomicInteger` la corrige sans verrou, puis le CAS sur un objet, puis `ConcurrentHashMap`. |
-| 3 | **Pools et futures** | Après avoir compris la coordination, on cesse de créer des threads à la main : on les confie à un pool. |
-| 4 | **Producteur / consommateur** | Premier schéma classique, d'abord à la main (`wait/notify`), puis avec une `BlockingQueue`. |
-| 5 | **Lecteurs / rédacteurs** | Schéma où les lectures dominent : verrous de lecture et d'écriture, puis lecture optimiste. |
+| 2 | **Deadlock** | Le revers des verrous : dès qu'un thread en prend **plusieurs**, il risque l'interblocage. On le provoque, on le détecte, puis on le corrige (ordre global, `tryLock`). |
+| 3 | **Structures de données** | Suite directe de la race condition : `AtomicInteger` la corrige sans verrou, puis le CAS sur un objet, puis `ConcurrentHashMap`. |
+| 4 | **Pools et futures** | Après avoir compris la coordination, on cesse de créer des threads à la main : on les confie à un pool. |
+| 5 | **Producteur / consommateur** | Premier schéma classique, d'abord à la main (`wait/notify`), puis avec une `BlockingQueue`. |
+| 6 | **Lecteurs / rédacteurs** | Schéma où les lectures dominent : verrous de lecture et d'écriture, puis lecture optimiste. |
 
-Pas encore couverts par une démo : le **deadlock** et tous les sujets **virtual threads**.
+Pas encore couverts par une démo : tous les sujets **virtual threads**.
 
 ---
 
@@ -59,7 +61,27 @@ Fiche détaillée : [`README-synchroniseurs.md`](README-synchroniseurs.md)
 
 ---
 
-## 2. Structures de données thread-safe
+## 2. Deadlock
+
+Fiche détaillée : [`README-deadlock.md`](README-deadlock.md)
+
+**Problème.** Deux threads prennent les mêmes verrous dans l'ordre inverse : chacun détient le sien et attend celui de l'autre, pour toujours. Fil conducteur : deux virements croisés entre les comptes A et B.
+
+| Étape | Package | Démo | Idée |
+|---|---|---|---|
+| 1 | `etape1_deadlock` | `DeadlockDemo` | **Le problème** : deux `synchronized` imbriqués en ordre inverse. Détection par `ThreadMXBean.findDeadlockedThreads()`. |
+| 2 | `etape2_lockordering` | `LockOrderingDemo` | **Ordre global** : toujours verrouiller le plus petit id d'abord. Plus d'attente circulaire. |
+| 3 | `etape3_trylock` | `TryLockDemo` | **`tryLock(délai)`** : on renonce, on relâche, on réessaie après un délai aléatoire (anti-livelock). |
+
+**À retenir**
+- Il faut les **4 conditions de Coffman** (exclusion mutuelle, détention et attente, pas de préemption, attente circulaire) ; en casser **une** suffit.
+- Symptôme : threads `BLOCKED`, CPU à 0 %. Diagnostic : `jstack <pid>`, `jcmd <pid> Thread.print`, ou `findDeadlockedThreads()`.
+- Un thread bloqué sur `synchronized` ne peut pas être débloqué ; avec `ReentrantLock`, `tryLock(délai)` et `lockInterruptibly()` permettent d'en sortir.
+- Ne pas appeler de code inconnu en détenant un verrou.
+
+---
+
+## 3. Structures de données thread-safe
 
 Fiche détaillée : [`README-structures-de-donnees.md`](README-structures-de-donnees.md)
 
@@ -68,18 +90,20 @@ Fiche détaillée : [`README-structures-de-donnees.md`](README-structures-de-don
 | Étape | Package | Démo | Idée |
 |---|---|---|---|
 | 1 | `etape1_atomicinteger` | `AtomicIntegerDemo` | Compteur **atomique** sans verrou, basé sur le **CAS** (Compare-And-Swap). |
-| 2 | `etape2_atomicreference` | `AtomicReferenceDemo` | CAS sur un **objet** : `compareAndSet(attendu, nouveau)` ne réussit que pour un seul thread ; schéma lire, calculer, `compareAndSet`, recommencer en cas d'échec. |
-| 3 | `etape3_concurrenthashmap` | `ConcurrentHashMapDemo` | Une `HashMap` perd des clés même quand elles sont distinctes ; `ConcurrentHashMap` n'en perd aucune. |
+| 2 | `etape2_atomiclong` | `AtomicLongDemo` | `AtomicLong` vs `LongAdder` : même résultat, mais sous forte contention `LongAdder` est 5 à 10 fois plus rapide (écritures réparties sur plusieurs cellules). |
+| 3 | `etape3_atomicreference` | `AtomicReferenceDemo` | CAS sur un **objet** : `compareAndSet(attendu, nouveau)` ne réussit que pour un seul thread ; schéma lire, calculer, `compareAndSet`, recommencer en cas d'échec. |
+| 4 | `etape4_concurrenthashmap` | `ConcurrentHashMapDemo` | Une `HashMap` perd des clés même quand elles sont distinctes ; `ConcurrentHashMap` n'en perd aucune. |
 
 **À retenir**
 - CAS : « écrire seulement si la valeur est toujours celle que j'ai lue, sinon recommencer ». Aucun thread n'est bloqué.
+- Compteur très disputé et rarement lu : `LongAdder` ; besoin de `compareAndSet` ou d'une valeur exacte à tout instant : `AtomicLong`.
 - `AtomicReference` compare par **référence** (`==`) ; attention au problème **ABA**.
 - Atomique = **une seule variable**. Plusieurs variables liées demandent un verrou.
 - `ConcurrentHashMap` protège **chaque appel**, pas une séquence : jamais `get` puis `put` ; utiliser `merge`, `compute`, `putIfAbsent`.
 
 ---
 
-## 3. Pools de threads et futures
+## 4. Pools de threads et futures
 
 Fiche détaillée : [`README-pools-et-futures.md`](README-pools-et-futures.md)
 
@@ -99,7 +123,7 @@ Fiche détaillée : [`README-pools-et-futures.md`](README-pools-et-futures.md)
 
 ---
 
-## 4. Producteur / consommateur
+## 5. Producteur / consommateur
 
 Fiche détaillée : [`README-producteur-consommateur.md`](README-producteur-consommateur.md)
 
@@ -117,7 +141,7 @@ Fiche détaillée : [`README-producteur-consommateur.md`](README-producteur-cons
 
 ---
 
-## 5. Lecteurs / rédacteurs
+## 6. Lecteurs / rédacteurs
 
 Fiche détaillée : [`README-lecteur-redacteur.md`](README-lecteur-redacteur.md)
 
@@ -140,6 +164,7 @@ Fiche détaillée : [`README-lecteur-redacteur.md`](README-lecteur-redacteur.md)
 | Besoin | Outil |
 |---|---|
 | Un seul thread à la fois dans une section | `synchronized` |
+| Prendre plusieurs verrous sans deadlock | Ordre global des verrous, sinon `ReentrantLock.tryLock(délai)` |
 | Limiter à N threads l'accès à une ressource | `Semaphore` |
 | Attendre la fin de N tâches (une fois) | `CountDownLatch` |
 | Faire avancer N threads par étapes, ensemble | `CyclicBarrier` |
@@ -188,7 +213,7 @@ Questions fréquentes, regroupées par thème, avec une réponse type. Les renvo
    Une garantie du modèle mémoire Java : si l'action A *happens-before* B, alors B voit les effets de A. Exemples : la libération d'un verrou précède son acquisition suivante ; une écriture `volatile` précède la lecture suivante ; `start()` précède le début du thread ; la fin d'un thread précède le retour de son `join()`. C'est pourquoi `main` voit les écritures des threads après `join()`.
 
 7. **Qu'est-ce qu'un deadlock, et comment l'éviter ?**
-   Des threads s'attendent mutuellement pour toujours. Quatre conditions réunies : **exclusion mutuelle**, **détention et attente** (on garde un verrou en en demandant un autre), **pas de préemption** et **attente circulaire**. Pour l'éviter : prendre les verrous toujours dans le **même ordre**, réduire le nombre de verrous, utiliser `tryLock(délai)` pour abandonner, ne pas appeler de code inconnu sous verrou. Un `jstack` ou un `jcmd <pid> Thread.print` signale les deadlocks. *(Pas encore de démo dans le projet.)*
+   Des threads s'attendent mutuellement pour toujours. Quatre conditions réunies : **exclusion mutuelle**, **détention et attente** (on garde un verrou en en demandant un autre), **pas de préemption** et **attente circulaire**. Pour l'éviter : prendre les verrous toujours dans le **même ordre**, réduire le nombre de verrous, utiliser `tryLock(délai)` pour abandonner, ne pas appeler de code inconnu sous verrou. Un `jstack` ou un `jcmd <pid> Thread.print` signale les deadlocks. (`DeadlockDemo`, `LockOrderingDemo`, `TryLockDemo`)
 
 8. **Quelle différence entre deadlock, livelock et famine ?**
    Deadlock : les threads sont **bloqués** pour toujours. Livelock : ils **travaillent** sans avancer (ils se cèdent mutuellement le passage et recommencent). Famine : un thread n'obtient jamais la ressource parce que d'autres passent toujours avant (par exemple un rédacteur face à un flot de lecteurs).

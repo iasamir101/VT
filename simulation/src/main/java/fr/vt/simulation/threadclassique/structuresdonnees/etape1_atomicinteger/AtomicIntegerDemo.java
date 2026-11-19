@@ -41,6 +41,7 @@ public class AtomicIntegerDemo {
     private static final AtomicInteger atomicCounter = new AtomicInteger();
 
     public static void main(String[] args) throws InterruptedException {
+
         Thread t1 = new Thread(AtomicIntegerDemo::count);
         Thread t2 = new Thread(AtomicIntegerDemo::count);
 

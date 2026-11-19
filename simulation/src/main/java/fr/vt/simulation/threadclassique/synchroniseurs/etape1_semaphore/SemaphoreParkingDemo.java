@@ -39,6 +39,7 @@ public class SemaphoreParkingDemo {
         Semaphore parking = new Semaphore(PLACES);
 
         for (int i = 1; i <= VOITURES; i++) {
+
             final int carId = i;
 
             new Thread(() -> {

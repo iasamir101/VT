@@ -1,22 +1,24 @@
 # Structures de données thread-safe : fiches de révision
 
-Package racine : `fr.vt.simulation.threadclassique.structuresdonnees` (les packages `etape1_atomicinteger` à `etape3_concurrenthashmap` ci-dessous en sont des sous-packages).
+Package racine : `fr.vt.simulation.threadclassique.structuresdonnees` (les packages `etape1_atomicinteger` à `etape4_concurrenthashmap` ci-dessous en sont des sous-packages).
 
-Fil conducteur : **comment modifier une donnée partagée sans perdre d'écriture**. Les deux premières étapes le font avec le **CAS** (Compare-And-Swap) sur une variable ; la troisième l'applique à une map entière.
+Fil conducteur : **comment modifier une donnée partagée sans perdre d'écriture**. Les trois premières étapes le font avec le **CAS** (Compare-And-Swap) sur une variable ; la quatrième l'applique à une map entière.
 
 | Étape | Package | Démo | Notion |
 |---|---|---|---|
 | 1 | `etape1_atomicinteger` | `AtomicIntegerDemo` | `AtomicInteger`, CAS sur un entier |
-| 2 | `etape2_atomicreference` | `AtomicReferenceDemo` | `AtomicReference`, CAS sur un objet |
-| 3 | `etape3_concurrenthashmap` | `ConcurrentHashMapDemo` | `HashMap` vs `ConcurrentHashMap` |
+| 2 | `etape2_atomiclong` | `AtomicLongDemo` | `AtomicLong` vs `LongAdder` sous forte contention |
+| 3 | `etape3_atomicreference` | `AtomicReferenceDemo` | `AtomicReference`, CAS sur un objet |
+| 4 | `etape4_concurrenthashmap` | `ConcurrentHashMapDemo` | `HashMap` vs `ConcurrentHashMap` |
 
 Les étapes sont numérotées dans l'ordre d'apprentissage conseillé :
 
 | Ordre | Notion | Pourquoi à cette place |
 |---|---|---|
 | 1 | `AtomicInteger` | C'est le plus simple, et il rejoint la démo de race condition déjà écrite (`RaceConditionDemo`) : on corrige `counter++` sans `synchronized`. |
-| 2 | `AtomicReference` | Il généralise le CAS à n'importe quel objet (`compareAndSet` dans une boucle de réessai). |
-| 3 | `ConcurrentHashMap` | Son atomicité (`merge`, `compute`, `putIfAbsent`) devient plus facile à comprendre une fois le CAS vu. |
+| 2 | `AtomicLong` / `LongAdder` | Même compteur en 64 bits, mais sous **forte contention** : on voit la limite du CAS (les réessais) et comment `LongAdder` la contourne. |
+| 3 | `AtomicReference` | Il généralise le CAS à n'importe quel objet (`compareAndSet` dans une boucle de réessai). |
+| 4 | `ConcurrentHashMap` | Son atomicité (`merge`, `compute`, `putIfAbsent`) devient plus facile à comprendre une fois le CAS vu. |
 
 Lancer une démo (depuis `simulation/`) :
 
@@ -52,8 +54,8 @@ Un `AtomicInteger` est un entier dont les opérations (`incrementAndGet`, `addAn
 ### Astuces
 - `incrementAndGet()` renvoie la valeur **après**, `getAndIncrement()` la valeur **avant**.
 - `compareAndSet(attendu, nouveau)` renvoie `true` si le swap a eu lieu : base de tout algorithme sans verrou.
-- Pour un compteur très disputé (statistiques, métriques), `LongAdder` est plus rapide qu'`AtomicLong` : il répartit les écritures sur plusieurs cellules.
-- Variantes : `AtomicLong`, `AtomicBoolean`.
+- Pour un compteur très disputé (statistiques, métriques), `LongAdder` est plus rapide qu'`AtomicLong` : voir l'étape 2.
+- Variantes : `AtomicLong` (64 bits, étape 2), `AtomicBoolean`.
 
 ### Bonnes pratiques
 - Compteur ou indicateur simple partagé : préférer un atomique à `synchronized`.
@@ -65,7 +67,48 @@ Un `AtomicInteger` est un entier dont les opérations (`incrementAndGet`, `addAn
 
 ---
 
-## 2. `AtomicReferenceDemo` : le CAS sur un objet
+## 2. `AtomicLongDemo` : `AtomicLong` vs `LongAdder`
+
+### Notion
+`AtomicLong` est l'équivalent 64 bits d'`AtomicInteger` : même API, même CAS sur **une seule case mémoire**. Quand beaucoup de threads incrémentent cette case en même temps, la plupart des CAS échouent et recommencent : le compteur devient un goulot d'étranglement. `LongAdder` (Java 8) contourne le problème : il garde une **base** et un tableau de **cellules**. Un thread qui entre en conflit sur la base écrit dans une cellule à lui ; `sum()` additionne la base et toutes les cellules.
+
+### Déroulement
+1. 8 threads font chacun **2 000 000** d'incréments sur un `AtomicLong` partagé (`incrementAndGet()`), et on mesure la durée.
+2. Les mêmes 8 threads refont la même chose sur un `LongAdder` partagé (`increment()`).
+3. Après les `join()`, `main` affiche les deux totaux (`get()` et `sum()`) et les deux durées.
+4. L'ensemble est répété 3 fois.
+5. Résultat : les deux totaux valent toujours **16 000 000**, mais `AtomicLong` met environ **200 à 300 ms** et `LongAdder` environ **20 à 30 ms**.
+
+### Pourquoi 8 threads et 2 000 000 d'incréments
+L'écart n'apparaît qu'avec une **forte contention** : beaucoup de threads qui écrivent sans arrêt dans le même compteur. Avec 2 threads et peu d'incréments, `AtomicLong` est aussi rapide, voire plus.
+
+### Avantages
+- `LongAdder` **passe à l'échelle** : plus il y a de threads, plus l'écart avec `AtomicLong` grandit.
+- Les deux restent **sans verrou** et ne perdent aucun incrément.
+- `AtomicLong` donne une valeur **exacte à tout instant** et offre `compareAndSet`, `updateAndGet`, `getAndIncrement`.
+
+### Limites
+- `LongAdder.sum()` n'est **pas une photo atomique** : si des threads écrivent pendant l'appel, le résultat peut ne pas correspondre à un instant précis. Il est exact une fois les écritures terminées.
+- `LongAdder` n'a **ni `compareAndSet` ni `incrementAndGet`** : impossible d'obtenir « la valeur juste après mon incrément ». Il ne convient donc pas pour générer des identifiants uniques.
+- `LongAdder` occupe **plus de mémoire** (une cellule par thread en conflit).
+- Une mesure de durée dans un `main` reste approximative (compilation JIT, charge de la machine) : seul l'**écart** entre les deux compteurs est significatif. Pour un vrai benchmark, on utilise JMH.
+
+### Astuces
+- `LongAccumulator` généralise `LongAdder` à n'importe quelle opération associative : `new LongAccumulator(Long::max, Long.MIN_VALUE)` garde un maximum.
+- Dans une `ConcurrentHashMap` de compteurs : `map.computeIfAbsent(clé, k -> new LongAdder()).increment()`.
+- `sumThenReset()` lit et remet à zéro, pratique pour des métriques par période (imprécis si des threads écrivent en même temps).
+
+### Bonnes pratiques
+- **Compteur de statistiques** (requêtes, erreurs, octets), souvent écrit et rarement lu : `LongAdder`.
+- **Séquence d'identifiants**, seuil à tester ou besoin de `compareAndSet` : `AtomicLong`.
+- Choisir sur une mesure, pas par réflexe : à faible contention, `AtomicLong` suffit.
+
+### À retenir
+> `AtomicLong` = **une** case, CAS exact à tout instant, mais ralenti par les réessais sous forte contention. `LongAdder` = **plusieurs** cellules additionnées par `sum()` : beaucoup plus rapide pour **compter**, mais pas de `compareAndSet` ni de valeur instantanée exacte.
+
+---
+
+## 3. `AtomicReferenceDemo` : le CAS sur un objet
 
 ### Notion
 `AtomicReference<V>` applique le CAS à une **référence** : `compareAndSet(attendu, nouveau)` remplace la référence **seulement si elle est toujours celle qu'on a lue**. Combiné à des objets qu'on ne modifie jamais (on en fabrique une copie), il permet des structures sans verrou.
@@ -108,7 +151,7 @@ Un `AtomicInteger` est un entier dont les opérations (`incrementAndGet`, `addAn
 
 ---
 
-## 3. `ConcurrentHashMapDemo` : une map partagée entre threads
+## 4. `ConcurrentHashMapDemo` : une map partagée entre threads
 
 ### Notion
 `HashMap` n'est **pas thread-safe**. Deux threads qui écrivent en même temps corrompent sa structure interne. `ConcurrentHashMap` est conçue pour des accès concurrents.
@@ -159,7 +202,7 @@ Les threads n'écrivent pas la même clé, mais ils partagent la **structure int
 | Besoin | Outil |
 |---|---|
 | Compteur ou indicateur simple partagé | `AtomicInteger` / `AtomicLong` / `AtomicBoolean` |
-| Compteur très disputé (métriques) | `LongAdder` |
+| Compteur très disputé (métriques) | `LongAdder` (`AtomicLong` si besoin de `compareAndSet` ou d'une valeur exacte à tout instant) |
 | Remplacer atomiquement un objet entier | `AtomicReference` (objet immuable) |
 | Initialiser une valeur une seule fois, sans verrou | `compareAndSet(null, valeur)` |
 | Map partagée entre threads | `ConcurrentHashMap` |
@@ -176,3 +219,5 @@ Les threads n'écrivent pas la même clé, mais ils partagent la **structure int
 6. **`ConcurrentHashMap` est thread-safe : `get` puis `put` est-il sûr ?** Non (check-then-act) : utiliser `merge`, `compute` ou `putIfAbsent`.
 7. **Pourquoi `HashMap` perd des données avec des clés différentes ?** Structure interne partagée et redimensionnement concurrent.
 8. **`ConcurrentHashMap` ou `Collections.synchronizedMap` ?** `ConcurrentHashMap` : verrouillage par case et lectures sans verrou, bien plus scalable qu'un verrou unique sur toute la map.
+9. **`AtomicLong` ou `LongAdder` ?** `LongAdder` pour un compteur très disputé et rarement lu (métriques) : il répartit les écritures sur plusieurs cellules et évite les réessais du CAS. `AtomicLong` quand il faut `compareAndSet`, `incrementAndGet` (identifiants) ou une valeur exacte à tout instant. (`AtomicLongDemo`)
+10. **Pourquoi un `AtomicLong` ralentit-il avec beaucoup de threads ?** Tous font leur CAS sur la même case mémoire : un seul réussit à chaque tour, les autres relisent et recommencent, et la ligne de cache fait sans cesse l'aller-retour entre les cœurs.

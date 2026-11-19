@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.structuresdonnees.etape3_concurrenthashmap;
+package fr.vt.simulation.threadclassique.structuresdonnees.etape4_concurrenthashmap;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Les System.out.println dans les boucles masquent aussi le problème : println est synchronisé
  * et ralentit tellement les threads qu'ils ne s'entrelacent presque plus.
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.structuresdonnees.etape3_concurrenthashmap.ConcurrentHashMapDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.structuresdonnees.etape4_concurrenthashmap.ConcurrentHashMapDemo}
  */
 public class ConcurrentHashMapDemo {
 

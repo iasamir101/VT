@@ -1,4 +1,4 @@
-package fr.vt.simulation.threadclassique.structuresdonnees.etape2_atomicreference;
+package fr.vt.simulation.threadclassique.structuresdonnees.etape3_atomicreference;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -26,10 +26,12 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * Voir aussi : {@code AtomicIntegerDemo} (le même principe sur un entier).
  *
- * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.structuresdonnees.etape2_atomicreference.AtomicReferenceDemo}
+ * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.structuresdonnees.etape3_atomicreference.AtomicReferenceDemo}
  */
 public class AtomicReferenceDemo {
+
     private static String valeur = "A";
+
     private static AtomicReference<String> statut = new AtomicReference<>("EN_ATTENTE");
 
     public static void main(String[] args) throws InterruptedException {

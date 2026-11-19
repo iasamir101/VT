@@ -50,6 +50,7 @@ public class ExchangerDemo {
             String received = exchanger.exchange(mine);
 
             System.out.println(name + " a reçu : " + received);
+
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

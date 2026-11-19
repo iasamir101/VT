@@ -29,9 +29,12 @@ import java.util.List;
  *
  * Lancer : {@code mvn -q compile exec:java -Dexec.mainClass=fr.vt.simulation.threadclassique.lecteurredacteur.etape1_readwritelock.ReadWriteLockDemo}
  */
+
+
 public class ReadWriteLockDemo {
 
     public static void main(String[] args) throws InterruptedException {
+
         SharedData sharedData = new SharedData();
 
         List<Thread> threads = List.of(
