@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier des threads Java</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout : index des scénarios à gauche, établi (scène animée + chronologie des états) au centre, code Java et journal à droite */
+  --bg:#edf0f4; --surface:#ffffff; --surface-2:#f4f6f9; --ink:#14202e; --muted:#5b6979; --line:#d5dce4;
+  --accent:#1e4fd0; --accent-soft:#e3eafc; --accent-ink:#ffffff;
+  --run:#1e9a52; --blk:#d0393a; --wait:#d39200; --tw:#7a58d4; --end:#a2acb7;
+  --ok:#1e9a52; --warn:#c07c00; --err:#cc3333;
+  --code-bg:#101824; --code-ink:#d7e0ea;
+  --font-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --font-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e131a; --surface:#151c25; --surface-2:#1b2430; --ink:#e4ebf2; --muted:#93a2b2; --line:#2a3542;
+    --accent:#7ea4ff; --accent-soft:#1d2a46; --accent-ink:#0b1220;
+    --run:#3cc477; --blk:#f06464; --wait:#f0b429; --tw:#a58bf0; --end:#5d6874;
+    --ok:#3cc477; --warn:#f0b429; --err:#f06464; --code-bg:#0a0f16; --code-ink:#d7e0ea;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e131a; --surface:#151c25; --surface-2:#1b2430; --ink:#e4ebf2; --muted:#93a2b2; --line:#2a3542;
+  --accent:#7ea4ff; --accent-soft:#1d2a46; --accent-ink:#0b1220;
+  --run:#3cc477; --blk:#f06464; --wait:#f0b429; --tw:#a58bf0; --end:#5d6874;
+  --ok:#3cc477; --warn:#f0b429; --err:#f06464; --code-bg:#0a0f16; --code-ink:#d7e0ea;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--font-body)}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{display:grid;grid-template-columns:272px minmax(0,1fr);min-height:100%;transition:grid-template-columns .22s ease}
+.nav{background:var(--surface);border-right:1px solid var(--line);padding:16px 12px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 4px 14px;border-bottom:1px solid var(--line)}
+.mark{width:32px;height:32px;flex:none;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);padding:6px}
+.brand-txt{min-width:0;flex:1;display:flex;flex-direction:column;gap:1px}
+.brand h1{font:800 16px/1.15 var(--font-display);letter-spacing:-.01em;margin:0;white-space:nowrap}
+.brand-txt span{font:11px var(--font-mono);color:var(--muted);white-space:nowrap}
+.icon-btn{flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:6px;cursor:pointer}
+.icon-btn:hover{color:var(--ink);background:var(--surface-2)}
+.icon-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .22s}
+.navgroups{display:flex;flex-direction:column;gap:14px}
+.group{display:flex;flex-direction:column;gap:2px}
+.group h2{display:flex;align-items:center;justify-content:space-between;gap:8px;font:600 10.5px var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 4px;padding:0 10px}
+.group h2 i{font-style:normal;font-size:10px;letter-spacing:0;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:0 7px;line-height:16px}
+.nav a{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:10px;text-decoration:none;color:var(--ink);padding:7px 10px 7px 8px;border-radius:8px}
+.nav a .num{width:28px;height:26px;display:grid;place-items:center;border:1px solid var(--line);border-radius:6px;background:var(--surface);font:600 11px var(--font-mono);color:var(--muted);font-variant-numeric:tabular-nums;transition:background .15s,color .15s,border-color .15s}
+.nav a .lbl{min-width:0;display:flex;flex-direction:column;gap:1px}
+.nav a .t{font-size:14px;font-weight:500;line-height:1.25;text-wrap:balance}
+.nav a small{font:11px/1.3 var(--font-mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav a:hover{background:var(--surface-2)}
+.nav a:hover .num{border-color:var(--muted);color:var(--ink)}
+.nav a[aria-current="page"]{background:var(--accent-soft)}
+.nav a[aria-current="page"]::before{content:"";position:absolute;left:-12px;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.nav a[aria-current="page"] .num{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.nav a[aria-current="page"] .t{color:var(--accent);font-weight:600}
+.nav .foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding:12px 10px 0;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.45}
+.keys{display:flex;flex-direction:column;gap:5px}
+.keys span{display:flex;align-items:center;gap:8px}
+kbd{font:600 10.5px var(--font-mono);color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 6px;min-width:52px;text-align:center}
+.foot p{margin:0}
+/* menu replié : rail de numéros */
+body.nav-collapsed .app{grid-template-columns:68px minmax(0,1fr)}
+body.nav-collapsed .brand{flex-direction:column;padding:2px 0 12px}
+body.nav-collapsed .brand-txt,body.nav-collapsed .lbl,body.nav-collapsed .group h2 span,body.nav-collapsed .group h2 i,body.nav-collapsed .foot{display:none}
+body.nav-collapsed .icon-btn svg{transform:rotate(180deg)}
+body.nav-collapsed .group h2{height:1px;background:var(--line);margin:0 8px 6px;padding:0}
+body.nav-collapsed .nav a{grid-template-columns:1fr;justify-items:center;padding:6px 0}
+body.nav-collapsed .navgroups{gap:10px}
+
+main{padding:22px 26px 34px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.head{display:flex;flex-direction:column;gap:6px;max-width:80ch}
+.eyebrow{font:600 11px var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+.head h2{font:800 30px/1.1 var(--font-display);letter-spacing:-.015em;margin:0;text-wrap:balance}
+.head p{margin:0;color:var(--muted);max-width:72ch}
+
+.controls{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.btns{display:flex;gap:6px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);padding:7px 12px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;line-height:1.2}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);min-width:104px}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent)}
+.sep{width:1px;align-self:stretch;background:var(--line)}
+.param{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:132px}
+.param label{display:flex;justify-content:space-between;gap:8px}
+.param output{font:600 12px var(--font-mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.param input[type=range]{accent-color:var(--accent);width:100%}
+.param select{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:5px 6px;font-size:13px}
+
+.stats{display:flex;flex-wrap:wrap;gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:6px;padding:6px 12px 7px;display:flex;flex-direction:column;min-width:110px}
+.stat span{font-size:11.5px;color:var(--muted)}
+.stat b{font:700 19px/1.2 var(--font-display);font-variant-numeric:tabular-nums}
+.stat.ok{border-left-color:var(--ok)} .stat.warn{border-left-color:var(--warn)} .stat.err{border-left-color:var(--err)}
+.stat.err b{color:var(--err)}
+
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:16px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.panel > header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font:600 11px var(--font-mono);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.panel > header em{font-style:normal;text-transform:none;letter-spacing:0;font-weight:400}
+.canvas-wrap{position:relative}
+canvas{display:block;width:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:8px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend code{font:11.5px var(--font-mono);color:var(--ink)}
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.watch{margin:0;padding:10px 14px 12px 30px;font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+.watch li::marker{color:var(--accent)}
+pre.code{margin:0;background:var(--code-bg);color:var(--code-ink);font:12px/1.6 var(--font-mono);padding:12px 14px;overflow:auto;max-height:430px;tab-size:2}
+.tk-k{color:#82b1ff}.tk-t{color:#7fdcc0}.tk-s{color:#f3c27b}.tk-c{color:#7d8b9b;font-style:italic}.tk-n{color:#f59ab4}
+ol.log{list-style:none;margin:0;padding:6px 0;max-height:250px;overflow:auto;font:12px/1.5 var(--font-mono)}
+ol.log li{padding:2px 12px;display:grid;grid-template-columns:52px minmax(0,1fr);gap:6px}
+ol.log li time{color:var(--muted);font-variant-numeric:tabular-nums}
+ol.log li.warn{color:var(--warn)} ol.log li.err{color:var(--err);font-weight:600} ol.log li.ok{color:var(--ok)}
+ol.log b{font-weight:600}
+
+.left{display:flex;flex-direction:column;gap:16px;min-width:0}
+.hr{display:flex;align-items:center;gap:10px}
+.max{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:5px;padding:3px 8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font:600 11px var(--font-mono);text-transform:none;letter-spacing:0;line-height:1.3}
+.max:hover{color:var(--ink);background:var(--surface-2)}
+.max svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.only-max{display:none}
+.panel.is-max .only-max{display:inline-flex;color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
+.backdrop{position:fixed;inset:0;background:rgba(8,13,20,.5);z-index:39;display:none}
+body.has-max{overflow:hidden}
+body.has-max .backdrop{display:block}
+.panel.is-max{position:fixed;inset:14px;z-index:40;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.3)}
+.panel.is-max > header{font-size:12px;padding:10px 14px}
+.panel.is-max .canvas-wrap,.panel.is-max .tl-wrap{flex:1;min-height:0;position:relative}
+.panel.is-max .canvas-wrap canvas,.panel.is-max .tl-wrap canvas{position:absolute;inset:0;height:100%}
+.panel.is-max pre.code{max-height:none;flex:1;min-height:0;font-size:15px;padding:18px 22px}
+.panel.is-max ol.log{max-height:none;flex:1;min-height:0;font-size:14px}
+.panel.is-max ol.log li{grid-template-columns:70px minmax(0,1fr);padding:3px 18px}
+.panel.is-max .watch{font-size:18px;line-height:1.55;gap:14px;padding:26px 30px 26px 52px;max-width:78ch;overflow:auto}
+@media (max-width:820px){ .panel.is-max{inset:0;border-radius:0} }
+@media (max-width:1240px){ .bench{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:820px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  body.nav-collapsed .app{grid-template-columns:minmax(0,1fr)}
+  .nav{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px;gap:10px}
+  .brand,body.nav-collapsed .brand{flex-direction:row;padding:0 2px 10px}
+  body.nav-collapsed .brand-txt{display:flex}
+  .icon-btn{display:none}
+  .navgroups,body.nav-collapsed .navgroups{flex-direction:row;gap:6px;overflow-x:auto;padding-bottom:4px}
+  .group{flex-direction:row;gap:6px}
+  .group h2,body.nav-collapsed .group h2{display:none}
+  .nav a,body.nav-collapsed .nav a{display:flex;align-items:center;gap:8px;white-space:nowrap;border:1px solid var(--line);padding:5px 10px 5px 5px}
+  .nav a[aria-current="page"]::before{display:none}
+  .nav a .num{width:24px;height:22px}
+  body.nav-collapsed .lbl{display:flex}
+  .nav a small{display:none}
+  .nav a .t{white-space:nowrap;font-size:13px}
+  .nav .foot{display:none}
+  main{padding:16px}
+  .head h2{font-size:24px}
+}
+@media (prefers-reduced-motion: reduce){ *{scroll-behavior:auto} }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="nav" aria-label="Scénarios">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 20 20" aria-hidden="true">
+        <rect x="0" y="2" width="9" height="3.4" rx="1.2" fill="var(--run)"/><rect x="10" y="2" width="4" height="3.4" rx="1.2" fill="var(--wait)"/><rect x="15" y="2" width="5" height="3.4" rx="1.2" fill="var(--run)"/>
+        <rect x="0" y="8.3" width="4" height="3.4" rx="1.2" fill="var(--tw)"/><rect x="5" y="8.3" width="3" height="3.4" rx="1.2" fill="var(--blk)"/><rect x="9" y="8.3" width="11" height="3.4" rx="1.2" fill="var(--run)"/>
+        <rect x="0" y="14.6" width="12" height="3.4" rx="1.2" fill="var(--run)"/><rect x="13" y="14.6" width="7" height="3.4" rx="1.2" fill="var(--wait)"/>
+      </svg>
+      <div class="brand-txt"><h1>Atelier des threads</h1><span>java.util.concurrent</span></div>
+      <button class="icon-btn" id="collapse" type="button" aria-label="Replier le menu" title="Replier le menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+    </div>
+    <div class="navgroups" id="navgroups"></div>
+    <div class="foot">
+      <div class="keys"><span><kbd>Espace</kbd>pause / reprise</span><span><kbd>Échap</kbd>réduire un bloc agrandi</span></div>
+      <p>Threads simulés sur une horloge virtuelle (ms simulées).</p>
+    </div>
+  </nav>
+  <main>
+    <div class="head">
+      <div class="eyebrow" id="eyebrow"></div>
+      <h2 id="title"></h2>
+      <p id="blurb"></p>
+    </div>
+    <div class="controls" id="controls">
+      <div class="btns">
+        <button class="btn primary" id="play" type="button">Pause</button>
+        <button class="btn" id="step" type="button" title="Avance de 100 ms simulées">Pas +100 ms</button>
+        <button class="btn" id="reset" type="button">Rejouer</button>
+      </div>
+      <div class="param"><label for="speed">Vitesse <output id="speedOut">1×</output></label><input id="speed" type="range" min="0.25" max="3" step="0.25" value="1"></div>
+      <div class="sep" aria-hidden="true"></div>
+      <div id="params" style="display:contents"></div>
+    </div>
+    <div class="stats" id="stats" aria-live="polite"></div>
+    <div class="bench">
+      <div class="left">
+        <section class="panel" id="pScene">
+          <header><span>Scène</span><span class="hr"><em id="clock">t = 0,00 s</em><button class="max only-max" id="play2" type="button">Pause</button><button class="max" type="button" data-name="Scène"></button></span></header>
+          <div class="canvas-wrap"><canvas id="scene" height="420"></canvas></div>
+          <div class="legend" id="legend"></div>
+        </section>
+        <section class="panel" id="pTimeline">
+          <header><span>Chronologie des états</span><span class="hr"><em>10 dernières secondes</em><button class="max" type="button" data-name="Chronologie des états"></button></span></header>
+          <div class="tl-wrap"><canvas id="timeline" height="120"></canvas></div>
+        </section>
+      </div>
+      <div class="side">
+        <section class="panel"><header><span>À observer</span><span class="hr"><button class="max" type="button" data-name="À observer"></button></span></header><ul class="watch" id="watch"></ul></section>
+        <section class="panel"><header><span>Code Java</span><span class="hr"><button class="max" type="button" data-name="Code Java"></button></span></header><pre class="code" id="code"></pre></section>
+        <section class="panel"><header><span>Journal</span><span class="hr"><em>le plus récent en haut</em><button class="max" type="button" data-name="Journal"></button></span></header><ol class="log" id="log"></ol></section>
+      </div>
+      <div class="backdrop" id="backdrop"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ======================================================================
+   Moteur de simulation : chaque thread est un générateur qui "yield"
+   des opérations (travail, lock, await, acquire…). Le moteur gère les
+   états Java (RUNNABLE, BLOCKED, WAITING, TIMED_WAITING, TERMINATED).
+   ====================================================================== */
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rnd = (a, b) => a + Math.random() * (b - a);
+const rint = (a, b) => Math.floor(rnd(a, b + 1));
+const jit = (ms, f = 0.35) => Math.max(30, ms * rnd(1 - f, 1 + f));
+const spread = (i, n, a, b) => n <= 1 ? (a + b) / 2 : a + i * (b - a) / (n - 1);
+const ST = { RUN: 'RUNNABLE', BLK: 'BLOCKED', WAIT: 'WAITING', TW: 'TIMED_WAITING', END: 'TERMINATED' };
+const ID_COLORS = ['#2f6db5', '#c25a28', '#23866c', '#8a4bb8', '#b23a63', '#5f7d1f', '#1d8098', '#9a6b12', '#4a5bc4', '#a8432f'];
+const POISON = { poison: true };
+
+const op = {
+  work: (ms, label) => ({ t: 'work', ms, label }),
+  sleep: (ms, label) => ({ t: 'sleep', ms, label }),
+  lock: (m, label) => ({ t: 'lock', m, label }),
+  unlock: (m) => ({ t: 'unlock', m }),
+  tryLock: (m, ms, label) => ({ t: 'tryLock', m, ms, label }),
+  await: (c, label) => ({ t: 'await', c, label }),
+  signal: (c) => ({ t: 'signal', c, all: false }),
+  signalAll: (c) => ({ t: 'signal', c, all: true }),
+  acquire: (s, label) => ({ t: 'acquire', s, label }),
+  release: (s) => ({ t: 'release', s }),
+  countDown: (l) => ({ t: 'countDown', l }),
+  awaitLatch: (l, label) => ({ t: 'awaitLatch', l, label }),
+  barrier: (b, label) => ({ t: 'barrier', b, label }),
+  exchange: (x, v, label) => ({ t: 'exchange', x, v, label }),
+  take: (q, label) => ({ t: 'take', q, label }),
+  get: (f, label) => ({ t: 'get', f, label }),
+  readLock: (rw, label) => ({ t: 'readLock', rw, label }),
+  readUnlock: (rw) => ({ t: 'readUnlock', rw }),
+  writeLock: (rw, label) => ({ t: 'writeLock', rw, label }),
+  writeUnlock: (rw) => ({ t: 'writeUnlock', rw }),
+};
+
+class Sim {
+  constructor() { this.t = 0; this.threads = []; this.logs = []; this.S = {}; }
+  log(msg, th, kind) {
+    this.logs.push({ t: this.t, msg, th: th ? th.name : null, color: th ? th.color : null, kind: kind || '' });
+    if (this.logs.length > 400) this.logs.splice(0, this.logs.length - 400);
+  }
+  spawn(name, fn, opts = {}) {
+    const th = { id: this.threads.length + 1, name, color: opts.color || ID_COLORS[this.threads.length % ID_COLORS.length],
+      state: ST.RUN, hist: [{ t: this.t, s: ST.RUN }], busyUntil: 0, deadline: null, onTimeout: null, resume: undefined,
+      label: 'démarre', blockedOn: null, ready: true, data: {}, x: null, y: null, workStart: 0, workEnd: 0 };
+    th.gen = fn(th);
+    this.threads.push(th);
+    return th;
+  }
+  // primitives
+  lock(name) { return { kind: 'lock', name, owner: null, count: 0, queue: [] }; }
+  cond(lock, name) { return { kind: 'cond', name, lock, waiters: [] }; }
+  sem(name, n) { return { kind: 'sem', name, permits: n, total: n, queue: [] }; }
+  latch(name, n) { return { kind: 'latch', name, count: n, initial: n, waiters: [], openedAt: null }; }
+  barrierObj(name, n, onTrip) { return { kind: 'barrier', name, parties: n, arrived: [], generation: 0, trippedAt: -1e9, onTrip }; }
+  exchanger(name) { return { kind: 'exchanger', name, slot: null, last: null, count: 0 }; }
+  queue(name) { return { kind: 'queue', name, items: [], waiters: [] }; }
+  future(name) { return { kind: 'future', name, done: false, value: undefined, waiters: [], doneAt: null }; }
+  rwlock(name, mode) { return { kind: 'rw', name, mode, readers: new Set(), writer: null, queue: [] }; }
+
+  setState(th, s, label) {
+    if (label !== undefined) th.label = label;
+    if (th.state !== s) { th.state = s; th.hist.push({ t: this.t, s }); if (th.hist.length > 600) th.hist.splice(0, 200); }
+  }
+  block(th, state, obj, label) { th.blockedOn = obj; th.waitStart = this.t; this.setState(th, state, label); }
+  timeout(th, ms, fn) { th.deadline = this.t + ms; th.deadlineStart = this.t; th.onTimeout = fn; }
+  wakeThread(th, val) {
+    th.resume = val; th.blockedOn = null; th.deadline = null; th.onTimeout = null; th.workEnd = 0;
+    this.setState(th, ST.RUN); th.ready = true;
+  }
+  advance(dt) {
+    const end = this.t + dt;
+    while (this.t < end - 1e-9) {
+      this.t = Math.min(end, this.t + 5);
+      for (const th of this.threads) {
+        if (th.state === ST.RUN && th.busyUntil && th.busyUntil <= this.t) { th.busyUntil = 0; th.ready = true; }
+        if (th.deadline != null && th.deadline <= this.t) { const f = th.onTimeout; th.deadline = null; th.onTimeout = null; if (f) f(); }
+      }
+      let guard = 0, again = true;
+      while (again && guard++ < 400) {
+        again = false;
+        for (const th of this.threads) if (th.ready) { th.ready = false; this.stepThread(th); again = true; }
+      }
+    }
+  }
+  stepThread(th) {
+    for (let n = 0; n < 300; n++) {
+      const r = th.gen.next(th.resume); th.resume = undefined;
+      if (r.done) { th.blockedOn = null; th.workEnd = 0; this.setState(th, ST.END, 'terminé'); return; }
+      if (!this.exec(th, r.value)) return;
+    }
+  }
+  unlockM(m, th) {
+    if (m.owner !== th) return;
+    m.count--; if (m.count > 0) return;
+    m.owner = null; this.grantLock(m);
+  }
+  grantLock(m) {
+    if (m.owner || !m.queue.length) return;
+    const e = m.queue.shift(); m.owner = e.th; m.count = e.reacq || 1;
+    this.wakeThread(e.th, e.timed ? true : undefined);
+  }
+  put(q, item) { if (q.waiters.length) this.wakeThread(q.waiters.shift(), item); else q.items.push(item); }
+  complete(f, v) {
+    if (f.done) return; f.done = true; f.value = v; f.doneAt = this.t;
+    const w = f.waiters; f.waiters = []; w.forEach(x => this.wakeThread(x, v));
+  }
+  canRead(rw) { if (rw.writer) return false; return rw.mode === 'readers' ? true : rw.queue.length === 0; }
+  grantRW(rw) {
+    if (rw.writer) return;
+    if (rw.mode === 'readers') {
+      const rs = rw.queue.filter(e => e.kind === 'r');
+      if (rs.length) { rw.queue = rw.queue.filter(e => e.kind !== 'r'); rs.forEach(e => { rw.readers.add(e.th); this.wakeThread(e.th); }); return; }
+      if (rw.readers.size === 0 && rw.queue.length) { const e = rw.queue.shift(); rw.writer = e.th; this.wakeThread(e.th); }
+      return;
+    }
+    while (rw.queue.length) {
+      const e = rw.queue[0];
+      if (e.kind === 'w') { if (rw.readers.size === 0) { rw.queue.shift(); rw.writer = e.th; this.wakeThread(e.th); } return; }
+      rw.queue.shift(); rw.readers.add(e.th); this.wakeThread(e.th);
+    }
+  }
+  exec(th, o) {
+    const t = this.t;
+    switch (o.t) {
+      case 'work':
+        if (o.ms <= 0) return true;
+        this.setState(th, ST.RUN, o.label || 'travaille'); th.workStart = t; th.workEnd = t + o.ms; th.busyUntil = t + o.ms; return false;
+      case 'sleep':
+        this.block(th, ST.TW, null, o.label || `sleep(${Math.round(o.ms)})`);
+        this.timeout(th, o.ms, () => this.wakeThread(th)); return false;
+      case 'lock': {
+        const m = o.m;
+        if (!m.owner) { m.owner = th; m.count = 1; return true; }
+        if (m.owner === th) { m.count++; return true; }
+        m.queue.push({ th }); this.block(th, ST.BLK, m, o.label || `${m.name}.lock()`); return false;
+      }
+      case 'unlock': this.unlockM(o.m, th); return true;
+      case 'tryLock': {
+        const m = o.m;
+        if (!m.owner) { m.owner = th; m.count = 1; th.resume = true; return true; }
+        if (m.owner === th) { m.count++; th.resume = true; return true; }
+        if (!o.ms) { th.resume = false; return true; }
+        const e = { th, timed: true }; m.queue.push(e);
+        this.block(th, ST.TW, m, o.label || `${m.name}.tryLock(${o.ms} ms)`);
+        this.timeout(th, o.ms, () => { const i = m.queue.indexOf(e); if (i >= 0) m.queue.splice(i, 1); this.wakeThread(th, false); });
+        return false;
+      }
+      case 'await': {
+        const c = o.c, m = c.lock;
+        c.waiters.push({ th, reacq: m.count }); m.owner = null; m.count = 0;
+        this.block(th, ST.WAIT, c, o.label || `${c.name}.await()`); this.grantLock(m); return false;
+      }
+      case 'signal': {
+        const c = o.c, L = c.lock;
+        let n = o.all ? c.waiters.length : Math.min(1, c.waiters.length);
+        while (n-- > 0) { const e = c.waiters.shift(); L.queue.push({ th: e.th, reacq: e.reacq }); e.th.blockedOn = L; this.setState(e.th, ST.BLK, `réacquiert ${L.name}`); }
+        this.grantLock(L); return true;
+      }
+      case 'acquire': {
+        const s = o.s;
+        if (s.permits > 0) { s.permits--; return true; }
+        s.queue.push(th); this.block(th, ST.WAIT, s, o.label || `${s.name}.acquire()`); return false;
+      }
+      case 'release': {
+        const s = o.s; s.permits++;
+        while (s.permits > 0 && s.queue.length) { s.permits--; this.wakeThread(s.queue.shift()); }
+        return true;
+      }
+      case 'countDown': {
+        const l = o.l;
+        if (l.count > 0) { l.count--; if (l.count === 0) { l.openedAt = t; const w = l.waiters; l.waiters = []; w.forEach(x => this.wakeThread(x)); } }
+        return true;
+      }
+      case 'awaitLatch': {
+        const l = o.l; if (l.count === 0) return true;
+        l.waiters.push(th); this.block(th, ST.WAIT, l, o.label || `${l.name}.await()`); return false;
+      }
+      case 'barrier': {
+        const b = o.b; b.arrived.push(th);
+        if (b.arrived.length >= b.parties) {
+          const arr = b.arrived; b.arrived = []; b.generation++; b.trippedAt = t;
+          if (b.onTrip) b.onTrip(b.generation, th);
+          arr.forEach(x => { if (x !== th) this.wakeThread(x); });
+          return true;
+        }
+        this.block(th, ST.WAIT, b, o.label || `${b.name}.await()`); return false;
+      }
+      case 'exchange': {
+        const x = o.x;
+        if (x.slot) {
+          const s = x.slot; x.slot = null; x.count++; x.last = { a: s.th, b: th, t };
+          th.resume = s.v; this.wakeThread(s.th, o.v); return true;
+        }
+        x.slot = { th, v: o.v }; this.block(th, ST.WAIT, x, o.label || `${x.name}.exchange()`); return false;
+      }
+      case 'take': {
+        const q = o.q;
+        if (q.items.length) { th.resume = q.items.shift(); return true; }
+        q.waiters.push(th); this.block(th, ST.WAIT, q, o.label || `${q.name}.take()`); return false;
+      }
+      case 'get': {
+        const f = o.f;
+        if (f.done) { th.resume = f.value; return true; }
+        f.waiters.push(th); this.block(th, ST.WAIT, f, o.label || `${f.name}.get()`); return false;
+      }
+      case 'readLock': {
+        const rw = o.rw;
+        if (this.canRead(rw)) { rw.readers.add(th); return true; }
+        rw.queue.push({ th, kind: 'r' }); this.block(th, ST.WAIT, rw, o.label || 'readLock().lock()'); return false;
+      }
+      case 'writeLock': {
+        const rw = o.rw;
+        const queued = rw.mode === 'readers' ? rw.queue.some(e => e.kind === 'w') : rw.queue.length > 0;
+        if (!rw.writer && rw.readers.size === 0 && !queued) { rw.writer = th; return true; }
+        rw.queue.push({ th, kind: 'w' }); this.block(th, ST.WAIT, rw, o.label || 'writeLock().lock()'); return false;
+      }
+      case 'readUnlock': o.rw.readers.delete(th); this.grantRW(o.rw); return true;
+      case 'writeUnlock': if (o.rw.writer === th) o.rw.writer = null; this.grantRW(o.rw); return true;
+    }
+    throw new Error('opération inconnue ' + o.t);
+  }
+  // Interblocage : cycle dans le graphe « attend le verrou détenu par »
+  check() {
+    for (const th of this.threads) {
+      if (th.state !== ST.BLK) continue;
+      const seen = [th]; let cur = th;
+      for (let k = 0; k < 20; k++) {
+        const m = cur.blockedOn;
+        if (!m || m.kind !== 'lock' || !m.owner) break;
+        const nxt = m.owner;
+        if (nxt === th) return { type: 'cycle', cycle: seen };
+        if (seen.includes(nxt) || nxt.state !== ST.BLK) break;
+        seen.push(nxt); cur = nxt;
+      }
+    }
+    const active = this.threads.filter(t => t.state !== ST.END);
+    if (!active.length) return { type: 'done' };
+    if (active.every(t => (t.state === ST.WAIT || t.state === ST.BLK) && t.deadline == null)) return { type: 'stall' };
+    return null;
+  }
+}
+
+/* ======================================================================
+   Aides de dessin
+   ====================================================================== */
+const BODY = '"IBM Plex Sans", system-ui, sans-serif', MONO = '"JetBrains Mono", ui-monospace, monospace', DISP = '"Archivo", Arial, sans-serif';
+const RM = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const LERP = RM ? 1 : 0.16;
+let C = {};
+function stateColor(s) { return { RUNNABLE: C.run, BLOCKED: C.blk, WAITING: C.wait, TIMED_WAITING: C.tw, TERMINATED: C.end }[s]; }
+function alpha(hex, a) {
+  let h = (hex || '#888888').replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const n = parseInt(h, 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
+}
+function rr(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function box(ctx, x, y, w, h, o = {}) {
+  rr(ctx, x, y, w, h, o.r ?? 6);
+  if (o.fill) { ctx.fillStyle = o.fill; ctx.fill(); }
+  if (o.stroke) { ctx.lineWidth = o.lw || 1; ctx.strokeStyle = o.stroke; if (o.dash) ctx.setLineDash(o.dash); ctx.stroke(); ctx.setLineDash([]); }
+}
+function txt(ctx, s, x, y, o = {}) {
+  ctx.font = `${o.weight || 400} ${o.size || 12}px ${o.font === 'mono' ? MONO : o.font === 'display' ? DISP : BODY}`;
+  ctx.textAlign = o.align || 'center'; ctx.textBaseline = o.base || 'middle';
+  if (o.maxw) s = fit(ctx, String(s), o.maxw);
+  if (o.halo) { ctx.lineWidth = 4; ctx.strokeStyle = o.halo; ctx.lineJoin = 'round'; ctx.strokeText(s, x, y); }
+  ctx.fillStyle = o.color || C.ink; ctx.fillText(s, x, y);
+}
+function fit(ctx, s, maxw) {
+  if (ctx.measureText(s).width <= maxw) return s;
+  while (s.length > 1 && ctx.measureText(s + '…').width > maxw) s = s.slice(0, -1);
+  return s + '…';
+}
+function lerpObj(o, tx, ty) { if (o.x == null) { o.x = tx; o.y = ty; } o.x += (tx - o.x) * LERP; o.y += (ty - o.y) * LERP; }
+function arrow(ctx, x1, y1, x2, y2, color, o = {}) {
+  const a = Math.atan2(y2 - y1, x2 - x1), s1 = o.s1 || 0, s2 = o.s2 || 0;
+  x1 += Math.cos(a) * s1; y1 += Math.sin(a) * s1; x2 -= Math.cos(a) * s2; y2 -= Math.sin(a) * s2;
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = o.w || 1.5;
+  if (o.dash) ctx.setLineDash(o.dash);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.setLineDash([]);
+  const h = o.head || 7;
+  ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2 - h * Math.cos(a - 0.45), y2 - h * Math.sin(a - 0.45));
+  ctx.lineTo(x2 - h * Math.cos(a + 0.45), y2 - h * Math.sin(a + 0.45)); ctx.closePath(); ctx.fill();
+}
+function zl(ctx, s, x, y, align = 'center') { txt(ctx, s, x, y, { color: C.muted, size: 11, font: 'mono', align }); }
+function drawThread(ctx, th, tx, ty, o = {}) {
+  lerpObj(th, tx, ty);
+  const x = th.x, y = th.y, r = o.r || 16, t = SIM.t;
+  ctx.lineWidth = 3; ctx.strokeStyle = stateColor(th.state);
+  ctx.beginPath(); ctx.arc(x, y, r + 4, 0, TAU); ctx.stroke();
+  if (th.state === ST.RUN && th.workEnd > t) {
+    const f = clamp((t - th.workStart) / (th.workEnd - th.workStart), 0, 1);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r + 9, -Math.PI / 2, -Math.PI / 2 + TAU * f); ctx.stroke();
+  }
+  if (th.deadline != null && th.deadline > t && th.deadlineStart != null) {
+    const f = clamp((th.deadline - t) / (th.deadline - th.deadlineStart), 0, 1);
+    ctx.strokeStyle = C.tw; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r + 9, -Math.PI / 2, -Math.PI / 2 + TAU * f); ctx.stroke();
+  }
+  ctx.fillStyle = th.state === ST.END ? C.end : th.color;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  const n = th.name; txt(ctx, n, x, y + 0.5, { color: '#ffffff', weight: 700, size: n.length <= 2 ? 12 : n.length <= 4 ? 10 : 9, font: 'mono' });
+  if (o.label !== false) txt(ctx, o.text ?? th.label, x, y + r + 19, { color: C.muted, size: 11, font: 'mono', maxw: o.maxw || 132, halo: C.surface });
+}
+function banner(ctx, W, s, color) {
+  ctx.font = `600 13px ${BODY}`; const w = Math.min(W - 24, ctx.measureText(s).width + 36);
+  box(ctx, (W - w) / 2, 10, w, 32, { fill: color, r: 6 });
+  txt(ctx, s, W / 2, 26.5, { color: '#ffffff', weight: 600, size: 13, maxw: w - 20 });
+}
+function drawFlashes(ctx, S) {
+  if (!S.flashes) return;
+  S.flashes = S.flashes.filter(f => SIM.t - f.t < 1600);
+  for (const f of S.flashes) {
+    const k = (SIM.t - f.t) / 1600; ctx.globalAlpha = 1 - k;
+    txt(ctx, f.text, f.x, f.y - k * 24, { color: f.color, weight: 600, size: 12, halo: C.surface });
+    ctx.globalAlpha = 1;
+  }
+}
+function slotItem(ctx, it, x, y, s) {
+  box(ctx, x - s / 2, y - s / 2, s, s, { fill: it.color, r: 4 });
+  txt(ctx, '#' + it.id, x, y + 0.5, { color: '#fff', size: 10, weight: 600, font: 'mono' });
+}
+
+/* ======================================================================
+   Scénarios
+   ====================================================================== */
+const SCENARIOS = [
+/* ---------------------------------------------------------------- 1 */
+{
+  id: 'producteur-consommateur', group: 'Problèmes classiques', title: 'Producteur / Consommateur', short: 'Lock + Condition',
+  blurb: 'Des producteurs déposent des éléments dans un tampon de taille fixe et des consommateurs les retirent. Un ReentrantLock protège le tampon ; deux Condition, notFull et notEmpty, font patienter ceux qui ne peuvent pas avancer.',
+  watch: [
+    'Tampon plein : les producteurs passent en WAITING sur notFull.await(), et await() libère le verrou pendant l’attente.',
+    'Chaque take() appelle notFull.signal() : un producteur se réveille, repasse BLOCKED le temps de récupérer le verrou, puis dépose.',
+    'Rendez la consommation plus rapide que la production : ce sont alors les consommateurs qui attendent sur notEmpty.'
+  ],
+  params: [
+    { id: 'cap', label: 'Capacité du tampon', min: 1, max: 8, step: 1, value: 4 },
+    { id: 'np', label: 'Producteurs', min: 1, max: 4, step: 1, value: 2 },
+    { id: 'nc', label: 'Consommateurs', min: 1, max: 4, step: 1, value: 2 },
+    { id: 'pm', label: 'Production', min: 150, max: 1500, step: 50, value: 450, unit: 'ms' },
+    { id: 'cm', label: 'Consommation', min: 150, max: 1500, step: 50, value: 1100, unit: 'ms' },
+  ],
+  code: () => `class BoundedBuffer<T> {
+  private final Deque<T> items = new ArrayDeque<>();
+  private final int capacity;
+  private final ReentrantLock lock = new ReentrantLock();
+  private final Condition notFull  = lock.newCondition();
+  private final Condition notEmpty = lock.newCondition();
+
+  BoundedBuffer(int capacity) { this.capacity = capacity; }
+
+  void put(T item) throws InterruptedException {
+    lock.lock();
+    try {
+      while (items.size() == capacity)
+        notFull.await();          // libère le verrou et attend
+      items.addLast(item);
+      notEmpty.signal();          // réveille un consommateur
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  T take() throws InterruptedException {
+    lock.lock();
+    try {
+      while (items.isEmpty())
+        notEmpty.await();
+      T item = items.removeFirst();
+      notFull.signal();           // réveille un producteur
+      return item;
+    } finally {
+      lock.unlock();
+    }
+  }
+}`,
+  setup(sim, p, S) {
+    S.lock = sim.lock('lock'); S.notFull = sim.cond(S.lock, 'notFull'); S.notEmpty = sim.cond(S.lock, 'notEmpty');
+    S.buf = []; S.cap = p.cap; S.seq = 0; S.prod = 0; S.cons = 0; S.P = []; S.Cs = [];
+    for (let i = 0; i < p.np; i++) S.P.push(sim.spawn('P' + (i + 1), function* (th) {
+      yield op.sleep(rnd(0, 200), 'démarre');
+      while (true) {
+        yield op.work(jit(p.pm), 'produit un élément');
+        const item = { id: ++S.seq, color: th.color }; th.data.item = item;
+        yield op.lock(S.lock, 'lock.lock()');
+        while (S.buf.length >= S.cap) { sim.log('tampon plein → notFull.await()', th, 'warn'); yield op.await(S.notFull, 'notFull.await()'); }
+        yield op.work(120, `put(#${item.id})`);
+        S.buf.push(item); th.data.item = null; S.prod++;
+        sim.log(`dépose #${item.id} (${S.buf.length}/${S.cap})`, th);
+        yield op.signal(S.notEmpty);
+        yield op.unlock(S.lock);
+      }
+    }));
+    for (let i = 0; i < p.nc; i++) S.Cs.push(sim.spawn('C' + (i + 1), function* (th) {
+      yield op.sleep(rnd(0, 200), 'démarre');
+      while (true) {
+        yield op.lock(S.lock, 'lock.lock()');
+        while (S.buf.length === 0) { sim.log('tampon vide → notEmpty.await()', th, 'warn'); yield op.await(S.notEmpty, 'notEmpty.await()'); }
+        yield op.work(120, 'take()');
+        const item = S.buf.shift(); th.data.item = item; S.cons++;
+        sim.log(`retire #${item.id} (${S.buf.length}/${S.cap})`, th);
+        yield op.signal(S.notFull);
+        yield op.unlock(S.lock);
+        yield op.work(jit(p.cm), `consomme #${item.id}`);
+        th.data.item = null;
+      }
+    }));
+  },
+  stats(sim, p, S) {
+    return [
+      { label: 'Produits', value: S.prod }, { label: 'Consommés', value: S.cons },
+      { label: 'Dans le tampon', value: `${S.buf.length} / ${S.cap}`, tone: S.buf.length === S.cap ? 'warn' : '' },
+      { label: 'En attente sur notFull', value: S.notFull.waiters.length, tone: S.notFull.waiters.length ? 'warn' : '' },
+      { label: 'En attente sur notEmpty', value: S.notEmpty.waiters.length, tone: S.notEmpty.waiters.length ? 'warn' : '' },
+    ];
+  },
+  draw(ctx, W, H, sim, p, S) {
+    const cx = W / 2, cap = S.cap, slotW = Math.min(54, (W * 0.44) / cap), bw = slotW * cap, bx = cx - bw / 2, by = H * 0.42, bh = 50;
+    // verrou
+    const lk = S.lock, ly = H * 0.12;
+    box(ctx, cx - 62, ly - 16, 124, 32, { fill: lk.owner ? alpha(lk.owner.color, 0.14) : C.surface2, stroke: lk.owner ? lk.owner.color : C.line, lw: 1.5 });
+    txt(ctx, lk.owner ? `lock ← ${lk.owner.name}` : 'lock : libre', cx, ly + 0.5, { font: 'mono', size: 12, weight: 600 });
+    if (lk.queue.length) zl(ctx, 'file du verrou', cx - 100, ly - 34, 'right');
+    // tampon
+    zl(ctx, `tampon (capacité ${cap})`, cx, by - 12 - 0);
+    for (let i = 0; i < cap; i++) {
+      box(ctx, bx + i * slotW + 3, by + 4, slotW - 6, bh - 8, { fill: C.surface2, stroke: C.line });
+      if (S.buf[i]) slotItem(ctx, S.buf[i], bx + i * slotW + slotW / 2, by + bh / 2, Math.min(36, slotW - 14));
+    }
+    const wy = by + bh + 86;
+    zl(ctx, 'notFull.await()', cx - 110, wy - 42, 'right');
+    zl(ctx, 'notEmpty.await()', cx + 110, wy - 42, 'left');
+    const nP = S.P.length, nC = S.Cs.length;
+    const pos = (th, home) => {
+      if (lk.owner === th) return [cx, by - 52];
+      if (th.blockedOn === lk) { const i = lk.queue.findIndex(e => e.th === th); return [cx - 100 - 22 - i * 44, ly]; }
+      if (th.blockedOn === S.notFull) { const i = S.notFull.waiters.findIndex(e => e.th === th); return [cx - 130 - i * 46, wy]; }
+      if (th.blockedOn === S.notEmpty) { const i = S.notEmpty.waiters.findIndex(e => e.th === th); return [cx + 130 + i * 46, wy]; }
+      return home;
+    };
+    S.P.forEach((th, i) => { const [x, y] = pos(th, [W * 0.08 + 6, spread(i, nP, H * 0.3, H * 0.86)]); drawThread(ctx, th, x, y, { maxw: 110 }); if (th.data.item) slotItem(ctx, th.data.item, th.x + 22, th.y - 20, 22); });
+    S.Cs.forEach((th, i) => { const [x, y] = pos(th, [W * 0.92 - 6, spread(i, nC, H * 0.3, H * 0.86)]); drawThread(ctx, th, x, y, { maxw: 110 }); if (th.data.item) slotItem(ctx, th.data.item, th.x - 22, th.y - 20, 22); });
+    zl(ctx, 'producteurs', W * 0.08 + 6, H * 0.22); zl(ctx, 'consommateurs', W * 0.92 - 6, H * 0.22);
+  }
+},
+/* ---------------------------------------------------------------- 2 */
+{
+  id: 'lecteurs-ecrivains', group: 'Problèmes classiques', title: 'Lecteurs / Écrivains', short: 'ReadWriteLock',
+  blurb: 'Plusieurs lecteurs peuvent lire le document en même temps ; un écrivain doit être seul. Selon la politique d’accès, les écrivains passent à leur tour ou restent bloqués tant que des lecteurs se relaient.',
+  watch: [
+    'En mode « priorité aux lecteurs », un nouveau lecteur entre dès qu’aucun écrivain n’écrit, même si un écrivain patiente : l’attente des écrivains grimpe sans limite (famine).',
+    'En mode équitable (new ReentrantReadWriteLock(true)), la file est FIFO : un lecteur qui arrive derrière un écrivain attend son tour.',
+    'Dans la salle : plusieurs lecteurs ensemble, ou un seul écrivain, jamais les deux.'
+  ],
+  params: [
+    { id: 'mode', label: 'Politique', type: 'select', value: 'readers', options: [['readers', 'Priorité aux lecteurs'], ['fair', 'Équitable (FIFO)']] },
+    { id: 'nr', label: 'Lecteurs', min: 2, max: 6, step: 1, value: 4 },
+    { id: 'nw', label: 'Écrivains', min: 1, max: 3, step: 1, value: 2 },
+    { id: 'rm', label: 'Lecture', min: 200, max: 1600, step: 50, value: 900, unit: 'ms' },
+    { id: 'wm', label: 'Écriture', min: 200, max: 1600, step: 50, value: 600, unit: 'ms' },
+    { id: 'think', label: 'Pause entre accès', min: 100, max: 1500, step: 50, value: 350, unit: 'ms' },
+  ],
+  code: (p) => p.mode === 'fair' ? `class SharedDoc {
+  // true = équitable : ordre d'arrivée respecté
+  private final ReentrantReadWriteLock rw =
+      new ReentrantReadWriteLock(true);
+  private String content = "";
+  private int version = 1;
+
+  String read() {
+    rw.readLock().lock();           // partagé
+    try {
+      return content + " v" + version;
+    } finally {
+      rw.readLock().unlock();
+    }
+  }
+
+  void write(String text) {
+    rw.writeLock().lock();          // exclusif
+    try {
+      content = text;
+      version++;
+    } finally {
+      rw.writeLock().unlock();
+    }
+  }
+}` : `// Solution classique « priorité aux lecteurs »
+class SharedDoc {
+  private final Semaphore mutex = new Semaphore(1);
+  private final Semaphore wrt   = new Semaphore(1);
+  private int readCount = 0;
+
+  String read() throws InterruptedException {
+    mutex.acquire();
+    if (++readCount == 1) wrt.acquire(); // 1er lecteur bloque les écrivains
+    mutex.release();
+
+    String s = lire();                    // plusieurs lecteurs en parallèle
+
+    mutex.acquire();
+    if (--readCount == 0) wrt.release();  // dernier lecteur libère
+    mutex.release();
+    return s;
+  }
+
+  void write(String text) throws InterruptedException {
+    wrt.acquire();                        // attend qu'aucun lecteur ne lise
+    try { ecrire(text); } finally { wrt.release(); }
+  }
+}
+// Tant que des lecteurs se chevauchent, readCount ne retombe
+// jamais à 0 : les écrivains peuvent attendre indéfiniment.`,
+  setup(sim, p, S) {
+    S.rw = sim.rwlock('rwLock', p.mode); S.version = 1; S.reads = 0; S.writes = 0; S.maxW = 0; S.R = []; S.W = [];
+    for (let i = 0; i < p.nr; i++) S.R.push(sim.spawn('R' + (i + 1), function* (th) {
+      yield op.sleep(rnd(0, 500), 'pense');
+      while (true) {
+        yield op.readLock(S.rw, 'readLock().lock()');
+        yield op.work(jit(p.rm), `lit la v${S.version}`); S.reads++;
+        yield op.readUnlock(S.rw);
+        yield op.sleep(jit(p.think, 0.6), 'pense');
+      }
+    }));
+    for (let i = 0; i < p.nw; i++) S.W.push(sim.spawn('W' + (i + 1), function* (th) {
+      yield op.sleep(rnd(200, 900), 'prépare une modif');
+      while (true) {
+        th.data.t0 = sim.t;
+        yield op.writeLock(S.rw, 'writeLock().lock()');
+        const w = sim.t - th.data.t0; th.data.t0 = null; S.maxW = Math.max(S.maxW, w);
+        if (w > 1500) sim.log(`a attendu ${(w / 1000).toFixed(1).replace('.', ',')} s avant d’écrire`, th, 'warn');
+        yield op.work(jit(p.wm), 'écrit');
+        S.version++; S.writes++; sim.log(`publie la v${S.version}`, th, 'ok');
+        yield op.writeUnlock(S.rw);
+        yield op.sleep(jit(p.think * 2, 0.6), 'prépare une modif');
+      }
+    }));
+  },
+  stats(sim, p, S) {
+    const cur = Math.max(S.maxW, ...S.W.map(w => w.data.t0 != null ? sim.t - w.data.t0 : 0));
+    return [
+      { label: 'Lectures', value: S.reads }, { label: 'Écritures', value: S.writes },
+      { label: 'Lecteurs dans la salle', value: S.rw.readers.size },
+      { label: 'Attente max d’un écrivain', value: (cur / 1000).toFixed(1).replace('.', ',') + ' s', tone: cur > 4000 ? 'err' : cur > 1500 ? 'warn' : 'ok' },
+    ];
+  },
+  draw(ctx, W, H, sim, p, S) {
+    const x0 = W * 0.38, x1 = W * 0.76, y0 = H * 0.26, y1 = H * 0.72, rw = S.rw;
+    box(ctx, x0, y0, x1 - x0, y1 - y0, { fill: rw.writer ? alpha(C.blk, 0.07) : rw.readers.size ? alpha(C.run, 0.07) : C.surface2, stroke: C.line, lw: 1.5, r: 8 });
+    txt(ctx, `Document · v${S.version}`, (x0 + x1) / 2, y0 + 18, { font: 'display', weight: 700, size: 14 });
+    txt(ctx, rw.writer ? 'écriture exclusive' : rw.readers.size ? `${rw.readers.size} lecture(s) partagée(s)` : 'libre', (x0 + x1) / 2, y1 - 14, { font: 'mono', size: 11, color: C.muted });
+    // porte
+    ctx.fillStyle = C.surface; ctx.fillRect(x0 - 2, (y0 + y1) / 2 - 22, 5, 44);
+    const qy = (y0 + y1) / 2, ql = rw.queue.length, qs = Math.min(42, (x0 - 40) / Math.max(1, ql));
+    if (ql) zl(ctx, p.mode === 'fair' ? 'file FIFO' : 'en attente', x0 - 36, qy - 36, 'right');
+    const inside = [...rw.readers];
+    const all = [...S.R, ...S.W];
+    S.R.forEach((th, i) => {
+      let x, y, lab = true;
+      const ii = inside.indexOf(th), qi = rw.queue.findIndex(e => e.th === th);
+      if (ii >= 0) { const cols = Math.max(2, Math.floor((x1 - x0 - 40) / 56)); x = x0 + 44 + (ii % cols) * 56; y = y0 + 64 + Math.floor(ii / cols) * 58; lab = false; }
+      else if (qi >= 0) { x = x0 - 30 - qi * qs; y = qy; lab = false; }
+      else { x = spread(i, S.R.length, W * 0.1, W * 0.62); y = H * 0.09; }
+      drawThread(ctx, th, x, y, { label: lab, maxw: 96 });
+    });
+    S.W.forEach((th, i) => {
+      let x, y, lab = true; const qi = rw.queue.findIndex(e => e.th === th);
+      if (rw.writer === th) { x = (x0 + x1) / 2; y = (y0 + y1) / 2 + 6; lab = false; }
+      else if (qi >= 0) { x = x0 - 30 - qi * qs; y = qy; lab = false; if (th.data.t0 != null) txt(ctx, ((sim.t - th.data.t0) / 1000).toFixed(1).replace('.', ',') + ' s', th.x, th.y + 33, { font: 'mono', size: 11, color: sim.t - th.data.t0 > 3000 ? C.err : C.warn, weight: 600, halo: C.surface }); }
+      else { x = spread(i, S.W.length, W * 0.1, W * 0.5); y = H * 0.88; }
+      drawThread(ctx, th, x, y, { label: lab, maxw: 120 });
+    });
+    zl(ctx, 'lecteurs', W * 0.86, H * 0.09); zl(ctx, 'écrivains', W * 0.74, H * 0.88);
+  }
+},
+/* ---------------------------------------------------------------- 3 */
+{
+  id: 'interblocage', group: 'Problèmes classiques', title: 'Interblocage (deadlock)', short: 'Philosophes',
+  blurb: 'Le dîner des philosophes : chacun a besoin de la fourchette à sa gauche et de celle à sa droite. Si tous prennent d’abord la gauche, chacun attend la droite que son voisin ne lâchera jamais : c’est un cycle d’attente.',
+  watch: [
+    'Stratégie naïve : tous les philosophes passent BLOCKED et les flèches rouges forment un cycle. La simulation s’arrête sur l’interblocage détecté.',
+    'Ordre global : chacun prend d’abord la fourchette de plus petit numéro. Le dernier philosophe inverse son ordre et le cycle ne peut plus se former.',
+    'tryLock + recul : un philosophe qui n’obtient pas la seconde fourchette repose la première et réessaie plus tard.'
+  ],
+  params: [
+    { id: 'strat', label: 'Stratégie', type: 'select', value: 'naive', options: [['naive', 'Naïve (gauche puis droite)'], ['order', 'Ordre global des verrous'], ['trylock', 'tryLock + recul']] },
+    { id: 'n', label: 'Philosophes', min: 3, max: 6, step: 1, value: 5 },
+    { id: 'eat', label: 'Repas', min: 200, max: 1500, step: 50, value: 700, unit: 'ms' },
+    { id: 'think', label: 'Réflexion', min: 100, max: 1500, step: 50, value: 500, unit: 'ms' },
+  ],
+  code: (p) => p.strat === 'naive' ? `class Philosopher implements Runnable {
+  private final Lock left, right;
+
+  public void run() {
+    while (true) {
+      think();
+      left.lock();               // 1. prend la fourchette gauche
+      try {
+        right.lock();            // 2. attend la droite… détenue par le voisin
+        try {
+          eat();
+        } finally { right.unlock(); }
+      } finally { left.unlock(); }
+    }
+  }
+}
+// Si les N philosophes exécutent l'étape 1 en même temps,
+// chacun attend son voisin : cycle d'attente → deadlock.` : p.strat === 'order' ? `class Philosopher implements Runnable {
+  private final Fork a, b;
+
+  Philosopher(Fork left, Fork right) {
+    // ordre global : toujours la plus petite fourchette d'abord
+    a = left.id < right.id ? left : right;
+    b = left.id < right.id ? right : left;
+  }
+
+  public void run() {
+    while (true) {
+      think();
+      a.lock.lock();
+      try {
+        b.lock.lock();
+        try { eat(); } finally { b.lock.unlock(); }
+      } finally { a.lock.unlock(); }
+    }
+  }
+}
+// Plus de cycle possible : le graphe d'attente suit
+// l'ordre croissant des numéros de fourchettes.` : `public void run() {
+  while (true) {
+    think();
+    left.lock();
+    try {
+      if (right.tryLock(200, TimeUnit.MILLISECONDS)) {
+        try { eat(); } finally { right.unlock(); }
+      } else {
+        // échec : on repose la gauche (finally) puis on recule
+      }
+    } finally { left.unlock(); }
+    Thread.sleep(random.nextInt(400) + 100);   // recul aléatoire
+  }
+}`,
+  setup(sim, p, S) {
+    S.forks = []; S.ph = []; S.meals = 0; S.backoffs = 0;
+    for (let i = 0; i < p.n; i++) { const f = sim.lock('F' + (i + 1)); f.idx = i; S.forks.push(f); }
+    for (let i = 0; i < p.n; i++) {
+      const L = S.forks[i], R = S.forks[(i + 1) % p.n];
+      S.ph.push(sim.spawn('P' + (i + 1), function* (th) {
+        th.data.meals = 0;
+        yield op.sleep(rnd(200, 500), 'pense');
+        while (true) {
+          if (p.strat === 'trylock') {
+            yield op.lock(L, `${L.name}.lock()`);
+            yield op.work(500, `tient ${L.name}`);
+            const ok = yield op.tryLock(R, 200, `${R.name}.tryLock(200 ms)`);
+            if (!ok) {
+              S.backoffs++; sim.log(`${R.name} indisponible → repose ${L.name}`, th, 'warn');
+              yield op.unlock(L); yield op.sleep(rnd(100, 500), 'recule'); continue;
+            }
+          } else {
+            const [a, b] = p.strat === 'order' ? (L.idx < R.idx ? [L, R] : [R, L]) : [L, R];
+            yield op.lock(a, `${a.name}.lock()`);
+            yield op.work(500, `tient ${a.name}`);
+            yield op.lock(b, `${b.name}.lock()`);
+          }
+          yield op.work(jit(p.eat), 'mange');
+          S.meals++; th.data.meals++;
+          sim.log(`a mangé (repas n° ${th.data.meals})`, th, 'ok');
+          yield op.unlock(R); yield op.unlock(L);
+          yield op.sleep(jit(p.think), 'pense');
+        }
+      }));
+    }
+  },
+  stats(sim, p, S) {
+    const b = S.ph.filter(t => t.state === ST.BLK).length;
+    const out = [{ label: 'Repas servis', value: S.meals, tone: 'ok' }, { label: 'Philosophes BLOCKED', value: `${b} / ${p.n}`, tone: b === p.n ? 'err' : b ? 'warn' : '' }];
+    if (p.strat === 'trylock') out.push({ label: 'Reculs (tryLock échoué)', value: S.backoffs, tone: S.backoffs ? 'warn' : '' });
+    return out;
+  },
+  draw(ctx, W, H, sim, p, S, end) {
+    const cx = W / 2, cy = H * 0.52, R = Math.min(W * 0.36, H * 0.36), n = p.n;
+    ctx.fillStyle = C.surface2; ctx.strokeStyle = C.line; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cx, cy, R * 0.72, 0, TAU); ctx.fill(); ctx.stroke();
+    const ang = i => -Math.PI / 2 + i * TAU / n;
+    const cyc = end && end.type === 'cycle' ? end.cycle : [];
+    // flèches d'attente
+    S.ph.forEach(th => {
+      const m = th.blockedOn;
+      if (m && m.kind === 'lock' && m.owner && th.x != null && m.owner.x != null) {
+        const inCyc = cyc.includes(th);
+        arrow(ctx, th.x, th.y, m.owner.x, m.owner.y, C.blk, { s1: 24, s2: 24, w: inCyc ? 3 : 1.5, dash: inCyc ? null : [5, 4] });
+      }
+    });
+    // fourchettes
+    S.forks.forEach((f, i) => {
+      const a = ang(i) - Math.PI / n;
+      let tx = cx + Math.cos(a) * R * 0.5, ty = cy + Math.sin(a) * R * 0.5;
+      if (f.owner && f.owner.x != null) { const oa = Math.atan2(f.owner.y - cy, f.owner.x - cx); const side = f.idx === S.forks.indexOf(f) && S.ph.indexOf(f.owner) === i ? -1 : 1; tx = f.owner.x - Math.cos(oa) * 36 + Math.cos(oa + Math.PI / 2) * 14 * side; ty = f.owner.y - Math.sin(oa) * 36 + Math.sin(oa + Math.PI / 2) * 14 * side; }
+      f.p = f.p || {}; lerpObj(f.p, tx, ty);
+      ctx.save(); ctx.translate(f.p.x, f.p.y); ctx.rotate(a + Math.PI / 2);
+      box(ctx, -3, -14, 6, 28, { fill: f.owner ? f.owner.color : C.muted, r: 3 }); ctx.restore();
+      txt(ctx, f.name, f.p.x, f.p.y + (Math.sin(a) > 0 ? -22 : 22), { font: 'mono', size: 10, color: C.muted, halo: C.surface2 });
+    });
+    S.ph.forEach((th, i) => {
+      const a = ang(i); drawThread(ctx, th, cx + Math.cos(a) * R, cy + Math.sin(a) * R, { r: 17, maxw: 120 });
+      txt(ctx, `${th.data.meals || 0} repas`, th.x, th.y - 33, { font: 'mono', size: 10, color: C.muted, halo: C.surface });
+    });
+  }
+},
+/* ---------------------------------------------------------------- 4 */
+{
+  id: 'race-condition', group: 'Problèmes classiques', title: 'Race condition', short: 'count++',
+  blurb: 'count++ n’est pas atomique : c’est une lecture, un calcul et une écriture. Si deux threads lisent la même valeur avant d’écrire, l’un écrase le travail de l’autre et des incréments disparaissent.',
+  watch: [
+    'Chaque bulle « lu » montre la copie locale d’un thread. Deux bulles avec la même valeur annoncent une mise à jour perdue.',
+    'À la fin, comparez la valeur attendue (threads × incréments) et la valeur obtenue.',
+    'Passez en synchronized : la lecture et l’écriture deviennent indivisibles, les autres threads attendent en BLOCKED et plus rien n’est perdu.'
+  ],
+  params: [
+    { id: 'mode', label: 'Accès au compteur', type: 'select', value: 'unsafe', options: [['unsafe', 'Non synchronisé'], ['sync', 'synchronized']] },
+    { id: 'n', label: 'Threads', min: 2, max: 6, step: 1, value: 3 },
+    { id: 'k', label: 'Incréments par thread', min: 3, max: 25, step: 1, value: 8 },
+    { id: 'gap', label: 'Délai lecture → écriture', min: 30, max: 700, step: 10, value: 260, unit: 'ms' },
+  ],
+  code: (p) => p.mode === 'unsafe' ? `class Counter {
+  private int count = 0;
+
+  void increment() {
+    count++;
+    // équivaut en réalité à trois étapes :
+    //   int tmp = count;   // 1. lire
+    //   tmp = tmp + 1;     // 2. calculer
+    //   count = tmp;       // 3. écrire  ← peut écraser un autre thread
+  }
+}
+
+Counter c = new Counter();
+for (int i = 0; i < N; i++)
+  new Thread(() -> {
+    for (int k = 0; k < K; k++) c.increment();
+  }).start();
+// attendu : N * K … obtenu : souvent moins` : `class Counter {
+  private int count = 0;
+
+  synchronized void increment() {   // moniteur de l'objet
+    count++;                        // lire + calculer + écrire,
+  }                                 // sans interruption par un autre thread
+}
+// Les threads qui arrivent pendant qu'un autre est dans
+// increment() passent en BLOCKED sur le moniteur.`,
+  setup(sim, p, S) {
+    S.count = 0; S.ver = 0; S.done = 0; S.flashes = []; S.T = []; S.mon = sim.lock('moniteur');
+    for (let i = 0; i < p.n; i++) S.T.push(sim.spawn('T' + (i + 1), function* (th) {
+      for (let k = 0; k < p.k; k++) {
+        yield op.work(rnd(60, 280), 'autre travail');
+        if (p.mode === 'sync') yield op.lock(S.mon, 'synchronized');
+        const v = S.count, ver = S.ver; th.data.reg = v;
+        yield op.work(p.gap * rnd(0.7, 1.3), `lu ${v}, écrira ${v + 1}`);
+        const over = S.ver - ver; S.count = v + 1; S.ver++; S.done++; th.data.reg = null;
+        if (over > 0) { S.flashes.push({ t: sim.t, text: `${th.name} écrit ${v + 1} : ${over} incrément(s) écrasé(s)`, color: C.err, x: W0 / 2, y: H0 * 0.47 }); sim.log(`écrit ${v + 1} alors que count valait ${v + over} → ${over} incrément(s) perdu(s)`, th, 'err'); }
+        if (p.mode === 'sync') yield op.unlock(S.mon);
+      }
+    }));
+  },
+  stats(sim, p, S) {
+    const lost = S.done - S.count;
+    return [
+      { label: 'Valeur attendue', value: p.n * p.k }, { label: 'Incréments exécutés', value: S.done },
+      { label: 'Valeur de count', value: S.count, tone: lost ? 'err' : 'ok' },
+      { label: 'Mises à jour perdues', value: lost, tone: lost ? 'err' : 'ok' },
+    ];
+  },
+  draw(ctx, W, H, sim, p, S) {
+    const cx = W / 2, cy = H * 0.28;
+    S.T.forEach((th, i) => {
+      if (th.data.reg != null && th.x != null) { ctx.setLineDash([4, 4]); ctx.strokeStyle = alpha(th.color, 0.7); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(th.x, th.y - 44); ctx.lineTo(cx, cy + 36); ctx.stroke(); ctx.setLineDash([]); }
+    });
+    const lost = S.done - S.count;
+    box(ctx, cx - 110, cy - 36, 220, 72, { fill: C.surface2, stroke: lost ? C.err : C.line, lw: lost ? 2 : 1.5, r: 8 });
+    txt(ctx, 'count (mémoire partagée)', cx, cy - 20, { font: 'mono', size: 11, color: C.muted });
+    txt(ctx, String(S.count), cx, cy + 10, { font: 'display', size: 30, weight: 800 });
+    if (p.mode === 'sync') {
+      const m = S.mon; txt(ctx, m.owner ? `moniteur ← ${m.owner.name}` : 'moniteur : libre', cx, cy + 52, { font: 'mono', size: 11, color: m.owner ? m.owner.color : C.muted, weight: 600 });
+    }
+    S.T.forEach((th, i) => {
+      const x = spread(i, S.T.length, W * 0.12, W * 0.88), y = H * 0.74;
+      drawThread(ctx, th, x, y, { maxw: Math.max(90, W / S.T.length - 14) });
+      if (th.data.reg != null) {
+        box(ctx, th.x - 34, th.y - 58, 68, 24, { fill: alpha(th.color, 0.14), stroke: th.color, r: 5 });
+        txt(ctx, `lu : ${th.data.reg}`, th.x, th.y - 45.5, { font: 'mono', size: 11, weight: 600 });
+      }
+    });
+    drawFlashes(ctx, S);
+  }
+},
+/* ---------------------------------------------------------------- 5 */
+{
+  id: 'trylock', group: 'Verrous et atomiques', title: 'tryLock avec délai', short: 'ReentrantLock',
+  blurb: 'Des threads virent de l’argent entre deux comptes A et B, en les verrouillant dans des ordres opposés. Avec lock() ils finissent par s’interbloquer ; avec tryLock(délai), celui qui n’obtient pas le second verrou relâche le premier et retente plus tard.',
+  watch: [
+    'L’arc violet autour d’un thread est le temps restant avant l’abandon de tryLock : l’état est TIMED_WAITING, pas BLOCKED.',
+    'Après un échec, le thread libère ce qu’il tient, recule d’une durée aléatoire, puis réessaie.',
+    'Le total A + B reste constant : aucun virement n’est fait à moitié.',
+    'Passez en lock() : le cycle A ↔ B se forme et la simulation s’arrête sur l’interblocage.'
+  ],
+  params: [
+    { id: 'mode', label: 'Acquisition', type: 'select', value: 'try', options: [['try', 'tryLock(délai)'], ['lock', 'lock() bloquant']] },
+    { id: 'n', label: 'Threads', min: 2, max: 4, step: 1, value: 2 },
+    { id: 'to', label: 'Délai tryLock', min: 0, max: 800, step: 50, value: 300, unit: 'ms' },
+    { id: 'hold', label: 'Temps avant 2ᵉ verrou', min: 100, max: 900, step: 50, value: 400, unit: 'ms' },
+  ],
+  code: (p) => p.mode === 'try' ? `boolean transfer(Account from, Account to, int amount)
+    throws InterruptedException {
+  while (true) {
+    if (from.lock.tryLock(${p.to}, TimeUnit.MILLISECONDS)) {
+      try {
+        if (to.lock.tryLock(${p.to}, TimeUnit.MILLISECONDS)) {
+          try {
+            from.debit(amount);
+            to.credit(amount);
+            return true;
+          } finally { to.lock.unlock(); }
+        }
+        // second verrou indisponible : on sort, finally libère « from »
+      } finally { from.lock.unlock(); }
+    }
+    Thread.sleep(ThreadLocalRandom.current().nextInt(50, 400)); // recul
+  }
+}
+// T1 : transfer(A, B, …)    T2 : transfer(B, A, …)` : `void transfer(Account from, Account to, int amount) {
+  from.lock.lock();
+  try {
+    to.lock.lock();               // attend sans limite
+    try {
+      from.debit(amount);
+      to.credit(amount);
+    } finally { to.lock.unlock(); }
+  } finally { from.lock.unlock(); }
+}
+// T1 : transfer(A, B, …) tient A, attend B
+// T2 : transfer(B, A, …) tient B, attend A   → interblocage`,
+  setup(sim, p, S) {
+    S.A = { name: 'A', bal: 1000, lock: sim.lock('A.lock') }; S.B = { name: 'B', bal: 1000, lock: sim.lock('B.lock') };
+    S.ok = 0; S.fails = 0; S.T = [];
+    for (let i = 0; i < p.n; i++) {
+      const [first, second] = i % 2 === 0 ? [S.A, S.B] : [S.B, S.A];
+      S.T.push(sim.spawn('T' + (i + 1), function* (th) {
+        th.data.dir = `${first.name}→${second.name}`;
+        yield op.sleep(rnd(0, 150), 'démarre');
+        while (true) {
+          if (p.mode === 'lock') {
+            yield op.lock(first.lock, `${first.name}.lock()`);
+            yield op.work(jit(p.hold, 0.2), `tient ${first.name}`);
+            yield op.lock(second.lock, `${second.name}.lock()`);
+          } else {
+            const ok1 = yield op.tryLock(first.lock, p.to, `${first.name}.tryLock(${p.to})`);
+            if (!ok1) { S.fails++; sim.log(`${first.name} indisponible → recule`, th, 'warn'); yield op.sleep(rnd(50, 400), 'recul aléatoire'); continue; }
+            yield op.work(jit(p.hold, 0.2), `tient ${first.name}`);
+            const ok2 = yield op.tryLock(second.lock, p.to, `${second.name}.tryLock(${p.to})`);
+            if (!ok2) { S.fails++; sim.log(`délai écoulé sur ${second.name} → libère ${first.name}`, th, 'warn'); yield op.unlock(first.lock); yield op.sleep(rnd(50, 400), 'recul aléatoire'); continue; }
+          }
+          yield op.work(250, 'virement');
+          const amt = Math.min(first.bal, rint(1, 20) * 10); first.bal -= amt; second.bal += amt; S.ok++;
+          sim.log(`vire ${amt} € de ${first.name} vers ${second.name}`, th, 'ok');
+          yield op.unlock(second.lock); yield op.unlock(first.lock);
+          yield op.sleep(rnd(150, 500), 'pause');
+        }
+      }));
+    }
+  },
+  stats(sim, p, S) {
+    return [
+      { label: 'Virements réussis', value: S.ok, tone: 'ok' },
+      { label: 'Tentatives abandonnées', value: S.fails, tone: S.fails ? 'warn' : '' },
+      { label: 'Solde A', value: S.A.bal + ' €' }, { label: 'Solde B', value: S.B.bal + ' €' },
+      { label: 'Total A + B', value: (S.A.bal + S.B.bal) + ' €', tone: 'ok' },
+    ];
+  },
+  draw(ctx, W, H, sim, p, S, end) {
+    const bw = 150, bh = 70, ys = H * 0.44, acc = { A: [W * 0.27, ys], B: [W * 0.73, ys] };
+    for (const a of [S.A, S.B]) {
+      const [x, y] = acc[a.name], o = a.lock.owner;
+      box(ctx, x - bw / 2, y - bh / 2, bw, bh, { fill: o ? alpha(o.color, 0.12) : C.surface2, stroke: o ? o.color : C.line, lw: o ? 2 : 1.5, r: 8 });
+      txt(ctx, `Compte ${a.name}`, x, y - 14, { font: 'display', weight: 700, size: 14 });
+      txt(ctx, `${a.bal} €`, x, y + 12, { font: 'mono', size: 14, weight: 600 });
+      txt(ctx, o ? `verrou ← ${o.name}` : 'verrou libre', x, y + bh / 2 + 14, { font: 'mono', size: 11, color: o ? o.color : C.muted });
+    }
+    const pos = (th, i) => {
+      const ownA = S.A.lock.owner === th, ownB = S.B.lock.owner === th;
+      if (ownA && ownB) return [W / 2, H * 0.16];
+      if (ownA) return [acc.A[0], H * 0.14];
+      if (ownB) return [acc.B[0], H * 0.14];
+      if (th.blockedOn === S.A.lock || th.blockedOn === S.B.lock) {
+        const L = th.blockedOn, k = L.queue.findIndex(e => e.th === th), a = L === S.A.lock ? acc.A : acc.B;
+        return [a[0] - 30 + k * 60, H * 0.76];
+      }
+      return [spread(i, S.T.length, W * 0.3, W * 0.7), H * 0.9];
+    };
+    S.T.forEach((th, i) => {
+      const [x, y] = pos(th, i); drawThread(ctx, th, x, y, { maxw: 140 });
+      txt(ctx, th.data.dir || '', th.x, th.y - 32, { font: 'mono', size: 10, color: C.muted, halo: C.surface });
+      const L = th.blockedOn; const own = S.A.lock.owner === th || S.B.lock.owner === th;
+      if (L && (L === S.A.lock || L === S.B.lock) && own) {
+        const a = L === S.A.lock ? acc.A : acc.B; arrow(ctx, th.x, th.y, a[0], a[1] - bh / 2, th.state === ST.BLK ? C.blk : C.tw, { s1: 24, s2: 4, dash: [5, 4], w: end && end.type === 'cycle' ? 3 : 1.5 });
+      }
+    });
+  }
+},
+/* ---------------------------------------------------------------- 6 */
+{
+  id: 'atomic-integer', group: 'Verrous et atomiques', title: 'AtomicInteger et CAS', short: 'compareAndSet',
+  blurb: 'AtomicInteger ne prend aucun verrou. incrementAndGet() lit la valeur puis tente un compareAndSet (CAS) : l’écriture ne réussit que si la valeur n’a pas changé entretemps, sinon le thread recommence.',
+  watch: [
+    'Aucun thread ne passe BLOCKED : tous restent RUNNABLE, même en cas de conflit (algorithme non bloquant).',
+    'Un CAS échoué (pastille rouge) signifie qu’un autre thread a écrit entre la lecture et le CAS ; le thread relit et réessaie.',
+    'La valeur finale est toujours exacte : les conflits coûtent des tentatives, pas des incréments.'
+  ],
+  params: [
+    { id: 'n', label: 'Threads', min: 2, max: 6, step: 1, value: 4 },
+    { id: 'k', label: 'Incréments par thread', min: 3, max: 25, step: 1, value: 8 },
+    { id: 'gap', label: 'Délai lecture → CAS', min: 30, max: 600, step: 10, value: 220, unit: 'ms' },
+  ],
+  code: () => `AtomicInteger count = new AtomicInteger(0);
+
+// Chaque thread :
+for (int k = 0; k < K; k++)
+  count.incrementAndGet();
+
+// incrementAndGet() fonctionne comme cette boucle CAS :
+int incrementAndGet() {
+  int prev, next;
+  do {
+    prev = get();                    // 1. lire
+    next = prev + 1;                 // 2. calculer
+  } while (!compareAndSet(prev, next)); // 3. écrire SI inchangé
+  return next;
+}
+// compareAndSet est une seule instruction matérielle (CAS) :
+// pas de verrou, pas d'état BLOCKED, et aucun incrément perdu.`,
+  setup(sim, p, S) {
+    S.value = 0; S.ok = 0; S.fail = 0; S.flashes = []; S.T = [];
+    for (let i = 0; i < p.n; i++) S.T.push(sim.spawn('T' + (i + 1), function* (th) {
+      for (let k = 0; k < p.k; k++) {
+        yield op.work(rnd(60, 280), 'autre travail');
+        while (true) {
+          const prev = S.value; th.data.reg = prev;
+          yield op.work(p.gap * rnd(0.6, 1.4), `compareAndSet(${prev}, ${prev + 1})`);
+          if (S.value === prev) { S.value = prev + 1; S.ok++; th.data.last = { ok: true, t: sim.t }; break; }
+          S.fail++; th.data.last = { ok: false, t: sim.t };
+          sim.log(`CAS échoué : attendu ${prev}, trouvé ${S.value} → relit`, th, 'warn');
+        }
+        th.data.reg = null;
+      }
+    }));
+  },
+  stats(sim, p, S) {
+    return [
+      { label: 'Valeur attendue', value: p.n * p.k }, { label: 'Valeur actuelle', value: S.value, tone: 'ok' },
+      { label: 'CAS réussis', value: S.ok, tone: 'ok' }, { label: 'CAS échoués (relances)', value: S.fail, tone: S.fail ? 'warn' : '' },
+      { label: 'Threads BLOCKED', value: 0 },
+    ];
+  },
+  draw(ctx, W, H, sim, p, S) {
+    const cx = W / 2, cy = H * 0.28;
+    S.T.forEach(th => { if (th.data.reg != null && th.x != null) { ctx.setLineDash([4, 4]); ctx.strokeStyle = alpha(th.color, 0.7); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(th.x, th.y - 44); ctx.lineTo(cx, cy + 36); ctx.stroke(); ctx.setLineDash([]); } });
+    box(ctx, cx - 120, cy - 36, 240, 72, { fill: C.surface2, stroke: C.line, lw: 1.5, r: 8 });
+    txt(ctx, 'AtomicInteger count', cx, cy - 20, { font: 'mono', size: 11, color: C.muted });
+    txt(ctx, String(S.value), cx, cy + 10, { font: 'display', size: 30, weight: 800 });
+    S.T.forEach((th, i) => {
+      const x = spread(i, S.T.length, W * 0.1, W * 0.9), y = H * 0.74;
+      drawThread(ctx, th, x, y, { maxw: Math.max(90, W / S.T.length - 10) });
+      if (th.data.reg != null) { box(ctx, th.x - 34, th.y - 58, 68, 24, { fill: alpha(th.color, 0.14), stroke: th.color, r: 5 }); txt(ctx, `lu : ${th.data.reg}`, th.x, th.y - 45.5, { font: 'mono', size: 11, weight: 600 }); }
+      const l = th.data.last;
+      if (l && sim.t - l.t < 900) { const c = l.ok ? C.ok : C.err; box(ctx, th.x - 36, th.y - 90, 72, 22, { fill: c, r: 11 }); txt(ctx, l.ok ? 'CAS ✓' : 'CAS ✗', th.x, th.y - 78.5, { color: '#fff', size: 11, weight: 700, font: 'mono' }); }
+    });
+  }
+},
+/* ---------------------------------------------------------------- 7 */
+{
+  id: 'semaphore', group: 'Synchroniseurs', title: 'Semaphore', short: 'permis',
+  blurb: 'Un Semaphore distribue un nombre fixe de permis. Ici il limite à N le nombre de threads qui utilisent en même temps un pool de connexions ; les autres attendent qu’un permis soit rendu.',
+  watch: [
+    'Jamais plus de N threads dans les emplacements, quel que soit le nombre de threads.',
+    'Un thread sans permis passe WAITING dans acquire() ; chaque release() en réveille un.',
+    'Mettez 1 permis : le sémaphore se comporte comme un verrou (exclusion mutuelle).'
+  ],
+  params: [
+    { id: 'permits', label: 'Permis', min: 1, max: 5, step: 1, value: 3 },
+    { id: 'n', label: 'Threads', min: 2, max: 10, step: 1, value: 7 },
+    { id: 'use', label: 'Durée d’utilisation', min: 200, max: 2500, step: 50, value: 1300, unit: 'ms' },
+  ],
+  code: (p) => `class ConnectionPool {
+  private final Semaphore permits = new Semaphore(${p.permits});
+
+  void query(String sql) throws InterruptedException {
+    permits.acquire();            // prend un permis (ou attend)
+    try {
+      Connection c = borrow();
+      c.execute(sql);             // au plus ${p.permits} threads ici
+      giveBack(c);
+    } finally {
+      permits.release();          // rend le permis, réveille un thread
+    }
+  }
+}`,
+  setup(sim, p, S) {
+    S.s = sim.sem('permits', p.permits); S.slots = Array(p.permits).fill(null); S.uses = 0; S.T = [];
+    for (let i = 0; i < p.n; i++) S.T.push(sim.spawn('T' + (i + 1), function* (th) {
+      yield op.sleep(rnd(0, 600), 'prépare une requête');
+      while (true) {
+        yield op.acquire(S.s, 'acquire()');
+        const k = S.slots.indexOf(null); S.slots[k] = th; th.data.slot = k;
+        yield op.work(jit(p.use), `requête sur connexion ${k + 1}`); S.uses++;
+        S.slots[k] = null; th.data.slot = null;
+        yield op.release(S.s);
+        yield op.sleep(jit(800, 0.6), 'prépare une requête');
+      }
+    }));
+  },
+  stats(sim, p, S) {
+    return [
+      { label: 'Permis disponibles', value: `${S.s.permits} / ${p.permits}`, tone: S.s.permits ? 'ok' : 'warn' },
+      { label: 'Threads en attente', value: S.s.queue.length, tone: S.s.queue.length ? 'warn' : '' },
+      { label: 'Requêtes terminées', value: S.uses },
+    ];
+  },
+  draw(ctx, W, H, sim, p, S) {
+    const n = p.permits, sw = Math.min(96, W * 0.5 / n), x0 = W * 0.58 - (sw * n) / 2, y = H * 0.5;
+    zl(ctx, `Semaphore(${n}) · pool de connexions`, x0 + sw * n / 2, y - 58);
+    for (let k = 0; k < n; k++) {
+      const occ = S.slots[k];
+      box(ctx, x0 + k * sw + 4, y - 40, sw - 8, 80, { fill: occ ? alpha(occ.color, 0.12) : C.surface2, stroke: occ ? occ.color : C.line, lw: 1.5, r: 8 });
+      txt(ctx, `connexion ${k + 1}`, x0 + k * sw + sw / 2, y + 28, { font: 'mono', size: 10, color: C.muted, maxw: sw - 12 });
+    }
+    if (S.s.queue.length) zl(ctx, 'acquire() en attente', x0 - 24, y - 58, 'right');
+    const top = S.T.filter(t => t.data.slot == null && !S.s.queue.includes(t));
+    S.T.forEach(th => {
+      let x, yy, lab = true;
+      if (th.data.slot != null) { x = x0 + th.data.slot * sw + sw / 2; yy = y - 8; lab = false; }
+      else if (S.s.queue.includes(th)) { const q = S.s.queue.indexOf(th); x = x0 - 30 - q * Math.min(44, (x0 - 40) / Math.max(1, S.s.queue.length)); yy = y; lab = false; }
+      else { const k = top.indexOf(th); x = spread(k, top.length, W * 0.08, W * 0.92); yy = H * 0.14; }
+      drawThread(ctx, th, x, yy, { label: lab, maxw: 96 });
+    });
+  }
+},
+/* ---------------------------------------------------------------- 8 */
+{
+  id: 'countdownlatch', group: 'Synchroniseurs', title: 'CountDownLatch', short: 'compte à rebours',
+  blurb: 'Un CountDownLatch part d’un compteur N. Les threads de démarrage appellent countDown() quand leur service est prêt ; main et le thread de rapport attendent dans await() que le compteur tombe à zéro.',
+  watch: [
+    'Le compteur ne fait que descendre : le loquet ne se referme jamais et ne se réutilise pas (c’est la différence avec CyclicBarrier).',
+    'countDown() ne bloque pas : chaque service continue sa vie ou se termine aussitôt.',
+    'Au passage à zéro, tous les threads en await() repartent en même temps.'
+  ],
+  params: [
+    { id: 'n', label: 'Services à initialiser', min: 2, max: 6, step: 1, value: 4 },
+    { id: 'init', label: 'Durée d’initialisation', min: 300, max: 3000, step: 100, value: 1600, unit: 'ms' },
+  ],
+  code: (p) => `CountDownLatch ready = new CountDownLatch(${p.n});
+
+for (Service s : services)          // ${p.n} services
+  pool.submit(() -> {
+    s.init();                        // connexion BDD, cache, config…
+    ready.countDown();               // ne bloque pas
+  });
+
+pool.submit(() -> {                  // thread « Rapport »
+  ready.await();
+  log("tous les services sont prêts");
+});
+
+ready.await();                       // main attend que le compteur = 0
+startHttpServer();`,
+  setup(sim, p, S) {
+    const names = ['BDD', 'Cache', 'Conf', 'Auth', 'Index', 'Mail'];
+    S.l = sim.latch('ready', p.n); S.svc = []; S.waiters = [];
+    for (let i = 0; i < p.n; i++) S.svc.push(sim.spawn(names[i], function* (th) {
+      yield op.sleep(rnd(0, 200), 'démarre');
+      yield op.work(jit(p.init, 0.6), `init()`);
+      yield op.countDown(S.l); sim.log(`prêt → countDown() (reste ${S.l.count})`, th, 'ok');
+      th.data.done = true;
+    }));
+    S.waiters.push(sim.spawn('main', function* (th) {
+      yield op.work(300, 'lance les services');
+      yield op.awaitLatch(S.l, 'ready.await()'); th.data.passed = true;
+      sim.log('compteur à 0 → démarre le serveur HTTP', th, 'ok');
+      yield op.work(900, 'startHttpServer()');
+    }));
+    S.waiters.push(sim.spawn('Rapp', function* (th) {
+      yield op.work(200, 'démarre');
+      yield op.awaitLatch(S.l, 'ready.await()'); th.data.passed = true;
+      sim.log('« tous les services sont prêts »', th, 'ok');
+      yield op.work(500, 'écrit le rapport');
+    }));
+  },
+  stats(sim, p, S) {
+    return [
+      { label: 'Compteur du latch', value: S.l.count, tone: S.l.count ? 'warn' : 'ok' },
+      { label: 'Services prêts', value: `${p.n - S.l.count} / ${p.n}` },
+      { label: 'Threads dans await()', value: S.l.waiters.length },
+    ];
+  },
+  draw(ctx, W, H, sim, p, S) {
+    const gx = W * 0.56, gy = H * 0.66, open = S.l.count === 0;
+    S.svc.forEach((th, i) => {
+      const x = spread(i, S.svc.length, W * 0.12, W * 0.88);
+      if (th.x != null && !th.data.done) { ctx.setLineDash([3, 4]); ctx.strokeStyle = C.line; ctx.beginPath(); ctx.moveTo(th.x, th.y + 40); ctx.lineTo(gx, gy - 60); ctx.stroke(); ctx.setLineDash([]); }
+      drawThread(ctx, th, x, H * 0.16, { maxw: 100, text: th.data.done ? 'countDown() ✓' : undefined });
+    });
+    // porte
+    ctx.lineWidth = 6; ctx.strokeStyle = open ? C.ok : C.ink; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(gx, gy - 56); ctx.lineTo(gx, gy - 30); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(gx, gy + 56); ctx.lineTo(gx, gy + 30); ctx.stroke();
+    if (!open) { ctx.beginPath(); ctx.moveTo(gx, gy - 30); ctx.lineTo(gx, gy + 30); ctx.stroke(); }
+    ctx.lineCap = 'butt';
+    box(ctx, gx - 34, gy - 98, 68, 34, { fill: open ? C.ok : C.surface2, stroke: open ? C.ok : C.line, lw: 1.5 });
+    txt(ctx, `count = ${S.l.count}`, gx, gy - 80.5, { font: 'mono', size: 12, weight: 700, color: open ? '#fff' : C.ink });
+    S.waiters.forEach((th, i) => {
+      let x, y = gy - 14 + i * 0 + (i ? 30 : -26);
+      if (th.data.passed) x = W * 0.82 + i * 0; else if (th.state === ST.WAIT) x = gx - 50; else x = W * 0.16;
+      drawThread(ctx, th, x, y + 14, { maxw: 140 });
+    });
+  }
+},
+/* ---------------------------------------------------------------- 9 */
+{
+  id: 'cyclicbarrier', group: 'Synchroniseurs', title: 'CyclicBarrier', short: 'rendez-vous',
+  blurb: 'Les threads calculent chacun une partie d’une phase, puis s’attendent à la barrière. Quand le dernier arrive, l’action de barrière fusionne les résultats et tout le monde repart pour la phase suivante. La barrière se réarme toute seule.',
+  watch: [
+    'Les plus rapides attendent en WAITING au trait vertical ; c’est toujours le plus lent qui déclenche le passage.',
+    'L’action de barrière s’exécute dans le thread arrivé en dernier, avant que les autres repartent.',
+    'La même barrière sert à chaque phase (génération suivante), contrairement à un CountDownLatch.'
+  ],
+  params: [
+    { id: 'n', label: 'Threads (parties)', min: 2, max: 6, step: 1, value: 4 },
+    { id: 'ph', label: 'Phases', min: 2, max: 6, step: 1, value: 3 },
+    { id: 'wm', label: 'Calcul par phase', min: 300, max: 2500, step: 100, value: 1300, unit: 'ms' },
+  ],
+  code: (p) => `CyclicBarrier barrier = new CyclicBarrier(${p.n},
+    () -> merge(partialResults));   // action de barrière
+
+for (int i = 0; i < ${p.n}; i++) {
+  int part = i;
+  new Thread(() -> {
+    for (int phase = 1; phase <= ${p.ph}; phase++) {
+      partialResults[part] = compute(part, phase);
+      barrier.await();              // attend les ${p.n - 1} autres
+    }
+  }).start();
+}`,
+  setup(sim, p, S) {
+    S.phase = 1; S.T = [];
+    S.b = sim.barrierObj('barrier', p.n, (gen, last) => { sim.log(`barrière franchie : phase ${gen} fusionnée (déclenchée par ${last.name})`, last, 'ok'); S.phase = gen + 1; });
+    for (let i = 0; i < p.n; i++) S.T.push(sim.spawn('T' + (i + 1), function* (th) {
+      for (let ph = 1; ph <= p.ph; ph++) {
+        yield op.work(jit(p.wm, 0.6), `calcule la phase ${ph}`);
+        sim.log(`arrive à la barrière (phase ${ph})`, th);
+        yield op.barrier(S.b, 'barrier.await()');
+      }
+    }));
+  },
+  stats(sim, p, S) {
+    return [
+      { label: 'Phase en cours', value: `${Math.min(S.phase, p.ph)} / ${p.ph}` },
+      { label: 'Arrivés à la barrière', value: `${S.b.arrived.length} / ${p.n}`, tone: S.b.arrived.length ? 'warn' : '' },
+      { label: 'Générations franchies', value: S.b.generation, tone: 'ok' },
+    ];
+  },
+  draw(ctx, W, H, sim, p, S) {
+    const x0 = W * 0.1, x1 = W * 0.72, n = S.T.length;
+    const flash = sim.t - S.b.trippedAt < 500;
+    ctx.lineWidth = flash ? 6 : 4; ctx.strokeStyle = flash ? C.ok : C.ink;
+    ctx.beginPath(); ctx.moveTo(x1, H * 0.1); ctx.lineTo(x1, H * 0.94); ctx.stroke();
+    txt(ctx, `barrière · phase ${Math.min(S.phase, p.ph)} / ${p.ph}`, x1, H * 0.05, { font: 'mono', size: 11, weight: 600, color: C.muted });
+    S.T.forEach((th, i) => {
+      const y = spread(i, n, H * 0.18, H * 0.84);
+      ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.setLineDash([2, 5]); ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(W * 0.92, y); ctx.stroke(); ctx.setLineDash([]);
+      let x = x0;
+      if (th.state === ST.WAIT) x = x1 - 26;
+      else if (th.state === ST.END) x = W * 0.88;
+      else if (th.workEnd > sim.t) x = x0 + (x1 - 26 - x0) * clamp((sim.t - th.workStart) / (th.workEnd - th.workStart), 0, 1);
+      else x = th.x ?? x0;
+      if (!RM && th.state === ST.RUN && th.workEnd > sim.t) { th.x = x; th.y = th.y ?? y; }
+      drawThread(ctx, th, x, y, { maxw: 140 });
+    });
+  }
+},
+/* ---------------------------------------------------------------- 10 */
+{
+  id: 'exchanger', group: 'Synchroniseurs', title: 'Exchanger', short: 'échange de tampons',
+  blurb: 'Deux threads se donnent rendez-vous pour échanger un objet. Le remplisseur remplit un tampon, le videur en vide un autre ; quand chacun a fini, ils s’échangent les tampons au point de rencontre et continuent sans copie.',
+  watch: [
+    'Le premier arrivé à exchange() attend en WAITING ; le second déclenche l’échange et les deux repartent.',
+    'Observez les tampons changer de main : ce sont les mêmes deux objets qui circulent, rien n’est recopié.',
+    'Rendez le vidage plus lent : c’est alors le remplisseur qui patiente au point d’échange.'
+  ],
+  params: [
+    { id: 'size', label: 'Taille d’un tampon', min: 2, max: 8, step: 1, value: 4 },
+    { id: 'fm', label: 'Remplir un élément', min: 100, max: 1000, step: 50, value: 300, unit: 'ms' },
+    { id: 'em', label: 'Vider un élément', min: 100, max: 1000, step: 50, value: 450, unit: 'ms' },
+  ],
+  code: (p) => `Exchanger<Buffer> exchanger = new Exchanger<>();
+
+class Filler implements Runnable {
+  Buffer current = new Buffer(${p.size});        // tampon A
+  public void run() {
+    while (true) {
+      while (!current.isFull()) current.add(read());
+      current = exchanger.exchange(current);  // donne le plein, reçoit le vide
+    }
+  }
+}
+
+class Emptier implements Runnable {
+  Buffer current = new Buffer(${p.size});        // tampon B (vide)
+  public void run() {
+    while (true) {
+      current = exchanger.exchange(current);  // donne le vide, reçoit le plein
+      while (!current.isEmpty()) write(current.take());
+    }
+  }
+}`,
+  setup(sim, p, S) {
+    S.x = sim.exchanger('exchanger'); S.bufA = { name: 'A', items: [] }; S.bufB = { name: 'B', items: [] };
+    S.seq = 0; S.done = 0; S.Tf = null; S.Te = null;
+    S.Tf = sim.spawn('Remp', function* (th) {
+      let buf = S.bufA; th.data.buf = buf;
+      while (true) {
+        while (buf.items.length < p.size) { yield op.work(jit(p.fm), `remplit ${buf.name}`); buf.items.push({ id: ++S.seq, color: th.color }); }
+        sim.log(`tampon ${buf.name} plein → exchange()`, th);
+        buf = yield op.exchange(S.x, buf, 'exchange(plein)'); th.data.buf = buf;
+      }
+    });
+    S.Te = sim.spawn('Vide', function* (th) {
+      let buf = S.bufB; th.data.buf = buf;
+      while (true) {
+        sim.log(`tampon ${buf.name} vide → exchange()`, th);
+        buf = yield op.exchange(S.x, buf, 'exchange(vide)'); th.data.buf = buf;
+        sim.log(`reçoit le tampon ${buf.name} (${buf.items.length} éléments)`, th, 'ok');
+        while (buf.items.length) { yield op.work(jit(p.em), `vide ${buf.name}`); buf.items.shift(); S.done++; }
+      }
+    });
+  },
+  stats(sim, p, S) {
+    return [
+      { label: 'Échanges', value: S.x.count, tone: 'ok' }, { label: 'Éléments traités', value: S.done },
+      { label: 'En attente au rendez-vous', value: S.x.slot ? S.x.slot.th.name : 'personne', tone: S.x.slot ? 'warn' : '' },
+    ];
+  },
+  draw(ctx, W, H, sim, p, S) {
+    const cx = W / 2, y = H * 0.32, flash = S.x.last && sim.t - S.x.last.t < 600;
+    ctx.strokeStyle = flash ? C.ok : C.line; ctx.lineWidth = flash ? 3 : 1.5; ctx.setLineDash(flash ? [] : [5, 5]);
+    ctx.beginPath(); ctx.arc(cx, y, 74, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    zl(ctx, 'point d’échange', cx, y - 88);
+    const pos = (th, home, side) => th.state === ST.WAIT && th.blockedOn === S.x ? [cx + side * 42, y] : home;
+    const [fx, fy] = pos(S.Tf, [W * 0.16, y], -1), [ex, ey] = pos(S.Te, [W * 0.84, y], 1);
+    drawThread(ctx, S.Tf, fx, fy, { maxw: 130 }); drawThread(ctx, S.Te, ex, ey, { maxw: 130 });
+    for (const b of [S.bufA, S.bufB]) {
+      const holder = S.Tf.data.buf === b ? S.Tf : S.Te;
+      const sw = 26, bw = sw * p.size + 10;
+      const tx = holder.x - bw / 2, ty = H * 0.62 + (holder === S.Tf ? 0 : 0);
+      b.p = b.p || {}; lerpObj(b.p, tx, ty);
+      box(ctx, b.p.x, b.p.y, bw, 40, { fill: C.surface2, stroke: holder.color, lw: 1.5, r: 6 });
+      for (let k = 0; k < p.size; k++) {
+        const it = b.items[k], ix = b.p.x + 5 + k * sw + sw / 2;
+        if (it) box(ctx, ix - 9, b.p.y + 11, 18, 18, { fill: it.color, r: 3 }); else box(ctx, ix - 9, b.p.y + 11, 18, 18, { stroke: C.line, r: 3 });
+      }
+      txt(ctx, `tampon ${b.name} · ${b.items.length}/${p.size}`, b.p.x + bw / 2, b.p.y + 56, { font: 'mono', size: 11, color: C.muted });
+    }
+  }
+},
+/* ---------------------------------------------------------------- 11 */
+{
+  id: 'callable-future', group: 'Exécution asynchrone', title: 'Callable et Future', short: 'ExecutorService',
+  blurb: 'main soumet des Callable à un pool de threads fixe. Chaque submit() rend tout de suite un Future ; les tâches attendent dans la file du pool. Plus tard, main appelle get() sur chaque Future et attend si le résultat n’est pas encore prêt.',
+  watch: [
+    'submit() ne bloque pas : main continue à travailler pendant que le pool exécute.',
+    'Avec un pool de 2, seules 2 tâches tournent en même temps ; les autres attendent dans la file.',
+    'get() sur un Future pas encore terminé met main en WAITING (flèche vers le Future concerné).'
+  ],
+  params: [
+    { id: 'pool', label: 'Taille du pool', min: 1, max: 4, step: 1, value: 2 },
+    { id: 'n', label: 'Tâches', min: 2, max: 8, step: 1, value: 5 },
+    { id: 'tm', label: 'Durée d’une tâche', min: 300, max: 2500, step: 100, value: 1300, unit: 'ms' },
+  ],
+  code: (p) => `ExecutorService pool = Executors.newFixedThreadPool(${p.pool});
+List<Future<Integer>> futures = new ArrayList<>();
+
+for (int i = 1; i <= ${p.n}; i++) {
+  int id = i;
+  Callable<Integer> task = () -> {   // renvoie une valeur,
+    Thread.sleep(work(id));           // peut lever une exception
+    return compute(id);
+  };
+  futures.add(pool.submit(task));    // rend la main tout de suite
+}
+
+doSomethingElse();
+
+int sum = 0;
+for (Future<Integer> f : futures)
+  sum += f.get();                    // bloque si pas encore prêt
+
+pool.shutdown();`,
+  setup(sim, p, S) {
+    S.q = sim.queue('file'); S.tasks = []; S.sum = 0; S.W = [];
+    for (let i = 1; i <= p.n; i++) S.tasks.push({ id: i, ms: jit(p.tm, 0.5), result: rint(10, 99), future: sim.future('f' + i), state: 'new' });
+    S.main = sim.spawn('main', function* (th) {
+      for (const tk of S.tasks) { yield op.work(140, `submit(tâche ${tk.id})`); tk.state = 'queued'; sim.put(S.q, tk); sim.log(`submit(tâche ${tk.id}) → Future f${tk.id}`, th); }
+      yield op.work(600, 'doSomethingElse()');
+      for (const tk of S.tasks) {
+        if (!tk.future.done) sim.log(`f${tk.id}.get() : pas prêt, attend`, th, 'warn');
+        const v = yield op.get(tk.future, `f${tk.id}.get()`); S.sum += v;
+        sim.log(`f${tk.id}.get() → ${v}`, th);
+      }
+      sim.log(`somme = ${S.sum} · pool.shutdown()`, th, 'ok');
+      for (let k = 0; k < p.pool; k++) sim.put(S.q, POISON);
+    });
+    for (let k = 0; k < p.pool; k++) S.W.push(sim.spawn('W' + (k + 1), function* (th) {
+      while (true) {
+        const tk = yield op.take(S.q, 'attend une tâche');
+        if (tk === POISON) break;
+        tk.state = 'running'; tk.worker = th; th.data.task = tk;
+        yield op.work(tk.ms, `call() tâche ${tk.id}`);
+        tk.state = 'done'; th.data.task = null; sim.complete(tk.future, tk.result);
+        sim.log(`tâche ${tk.id} terminée → ${tk.result}`, th, 'ok');
+      }
+    }));
+  },
+  stats(sim, p, S) {
+    const done = S.tasks.filter(t => t.state === 'done').length;
+    return [
+      { label: 'Tâches terminées', value: `${done} / ${p.n}`, tone: done === p.n ? 'ok' : '' },
+      { label: 'Dans la file du pool', value: S.q.items.filter(x => x !== POISON).length },
+      { label: 'Somme des get()', value: S.sum },
+    ];
+  },
+  draw(ctx, W, H, sim, p, S) {
+    const qx = W * 0.32, wx = W * 0.6;
+    zl(ctx, 'file du pool', qx, H * 0.07); zl(ctx, `pool (${p.pool} threads)`, wx, H * 0.07);
+    // futures
+    const fy = H * 0.86, fw = Math.min(84, (W * 0.74) / p.n - 8);
+    S.tasks.forEach((tk, i) => {
+      const x = spread(i, p.n, W * 0.24, W * 0.94), f = tk.future;
+      tk.fx = x;
+      box(ctx, x - fw / 2, fy - 20, fw, 40, { fill: f.done ? alpha(C.ok, 0.14) : C.surface2, stroke: f.done ? C.ok : C.line, lw: 1.5 });
+      txt(ctx, `f${tk.id}`, x, fy - 7, { font: 'mono', size: 11, weight: 600 });
+      txt(ctx, f.done ? `= ${f.value}` : tk.state === 'running' ? 'en cours' : tk.state === 'queued' ? 'en file' : '—', x, fy + 9, { font: 'mono', size: 10, color: f.done ? C.ok : C.muted });
+    });
+    // tâches
+    const queued = S.q.items.filter(x => x !== POISON);
+    S.tasks.forEach(tk => {
+      let tx, ty;
+      if (tk.state === 'queued') { const k = queued.indexOf(tk); tx = qx; ty = H * 0.15 + k * 32; }
+      else if (tk.state === 'running') { tx = tk.worker.x + 68; ty = tk.worker.y; }
+      else return;
+      tk.p = tk.p || { x: S.main.x ?? tx, y: S.main.y ?? ty }; lerpObj(tk.p, tx, ty);
+      box(ctx, tk.p.x - 40, tk.p.y - 13, 80, 26, { fill: C.surface, stroke: tk.state === 'running' ? C.accent : C.line, lw: 1.5, r: 5 });
+      txt(ctx, `tâche ${tk.id}`, tk.p.x, tk.p.y + 0.5, { font: 'mono', size: 11 });
+    });
+    S.W.forEach((th, i) => drawThread(ctx, th, wx, spread(i, S.W.length, H * 0.18, H * 0.62), { maxw: 130 }));
+    drawThread(ctx, S.main, W * 0.09, H * 0.42, { maxw: 120 });
+    const f = S.main.blockedOn;
+    if (f && f.kind === 'future') { const tk = S.tasks.find(t => t.future === f); arrow(ctx, S.main.x, S.main.y, tk.fx, fy - 22, C.wait, { s1: 22, s2: 2, dash: [5, 4], w: 2 }); }
+  }
+},
+/* ---------------------------------------------------------------- 12 */
+{
+  id: 'completable-future', group: 'Exécution asynchrone', title: 'CompletableFuture', short: 'pipeline',
+  blurb: 'Un pipeline asynchrone : trois supplyAsync partent en parallèle sur le ForkJoinPool commun, thenCombine attend le prix et le taux, thenApply formate le résultat, et main ne bloque qu’à la fin sur allOf(…).join().',
+  watch: [
+    'Les étapes suivantes se déclenchent toutes seules quand leurs dépendances sont terminées, sans thread qui attende.',
+    'En mode thenApply / thenCombine, l’étape suivante tourne dans le thread qui a terminé la dernière dépendance (regardez qui l’exécute).',
+    'En mode …Async, chaque étape repasse par la file du pool et peut changer de thread.'
+  ],
+  params: [
+    { id: 'mode', label: 'Variante', type: 'select', value: 'sync', options: [['sync', 'thenCombine / thenApply'], ['async', 'thenCombineAsync / thenApplyAsync']] },
+    { id: 'pool', label: 'Threads du pool', min: 1, max: 4, step: 1, value: 2 },
+    { id: 'lat', label: 'Latence des appels', min: 50, max: 200, step: 10, value: 100, unit: '%' },
+  ],
+  code: (p) => { const a = p.mode === 'async' ? 'Async' : ''; return `CompletableFuture<Double> price =
+    CompletableFuture.supplyAsync(() -> fetchPriceEUR());   // ~1,4 s
+CompletableFuture<Double> rate =
+    CompletableFuture.supplyAsync(() -> fetchRateUSD());    // ~2,0 s
+CompletableFuture<Integer> stock =
+    CompletableFuture.supplyAsync(() -> checkStock());      // ~1,1 s
+
+CompletableFuture<String> label = price
+    .thenCombine${a}(rate, (p, r) -> p * r)               // dès que les 2 sont là
+    .thenApply${a}(usd -> String.format("%.2f $", usd));
+
+doSomethingElse();                                 // main n'attend pas
+
+CompletableFuture.allOf(label, stock).join();      // seul point bloquant
+System.out.println(label.join() + " · stock " + stock.join());`; },
+  setup(sim, p, S) {
+    const m = p.lat / 100;
+    const mk = (id, label, deps, ms, fn) => ({ id, label, deps, ms: ms * m, fn, state: 'pending', f: sim.future(id), worker: null, value: undefined });
+    const price = mk('price', 'supplyAsync(prix)', [], jit(1400, 0.25), () => 120);
+    const rate = mk('rate', 'supplyAsync(taux)', [], jit(2000, 0.25), () => 1.08);
+    const stock = mk('stock', 'supplyAsync(stock)', [], jit(1100, 0.25), () => 14);
+    const comb = mk('comb', `thenCombine${p.mode === 'async' ? 'Async' : ''}(p × r)`, [price, rate], 500, (a, b) => +(a * b).toFixed(2));
+    const fmt = mk('fmt', `thenApply${p.mode === 'async' ? 'Async' : ''}(format)`, [comb], 400, v => v.toFixed(2) + ' $');
+    const all = mk('all', 'allOf(label, stock)', [fmt, stock], 0, () => 'ok');
+    S.nodes = [price, rate, stock, comb, fmt, all]; S.q = sim.queue('commonPool'); S.W = []; S.result = null;
+    S.nodes.forEach(n => n.dependents = S.nodes.filter(d => d.deps.includes(n)));
+    function* runNode(th, node) {
+      node.state = 'running'; node.worker = th; node.ranBy = th.name; th.data.node = node;
+      yield op.work(node.ms, node.label);
+      node.value = node.fn(...node.deps.map(d => d.value)); node.state = 'done'; th.data.node = null;
+      sim.complete(node.f, node.value); sim.log(`${node.label} → ${node.value}`, th, 'ok');
+      let next = null;
+      for (const d of node.dependents) {
+        if (d.state !== 'pending' || !d.deps.every(x => x.state === 'done')) continue;
+        if (d.id === 'all') { d.state = 'done'; d.ranBy = th.name; d.value = 'ok'; sim.complete(d.f, 'ok'); sim.log('allOf terminé : main peut reprendre', th, 'ok'); continue; }
+        if (p.mode === 'sync' && !next) { d.state = 'queued'; next = d; sim.log(`enchaîne ${d.label} dans le même thread`, th); }
+        else { d.state = 'queued'; sim.put(S.q, d); }
+      }
+      return next;
+    }
+    for (let k = 0; k < p.pool; k++) S.W.push(sim.spawn('FJ' + (k + 1), function* (th) {
+      while (true) {
+        let node = yield op.take(S.q, 'attend une tâche');
+        if (node === POISON) break;
+        while (node) node = yield* runNode(th, node);
+      }
+    }));
+    S.main = sim.spawn('main', function* (th) {
+      yield op.work(200, 'supplyAsync × 3');
+      for (const n of [price, rate, stock]) { n.state = 'queued'; sim.put(S.q, n); }
+      sim.log('3 supplyAsync soumis, main continue', th);
+      yield op.work(jit(900, 0.3), 'doSomethingElse()');
+      if (!all.f.done) sim.log('allOf(…).join() : pas prêt, attend', th, 'warn');
+      yield op.get(all.f, 'allOf(…).join()');
+      S.result = `${fmt.value} · stock ${stock.value}`;
+      sim.log(`affiche « ${S.result} »`, th, 'ok');
+      for (let k = 0; k < p.pool; k++) sim.put(S.q, POISON);
+    });
+  },
+  stats(sim, p, S) {
+    const done = S.nodes.filter(n => n.state === 'done').length;
+    const comb = S.nodes[3];
+    return [
+      { label: 'Étapes terminées', value: `${done} / ${S.nodes.length}`, tone: done === S.nodes.length ? 'ok' : '' },
+      { label: 'thenCombine exécuté par', value: comb.ranBy || '—' },
+      { label: 'Résultat affiché', value: S.result || '—', tone: S.result ? 'ok' : '' },
+    ];
+  },
+  draw(ctx, W, H, sim, p, S) {
+    const bw = Math.min(170, W * 0.2), bh = 44;
+    const P = { price: [W * 0.17, H * 0.14], rate: [W * 0.17, H * 0.38], stock: [W * 0.17, H * 0.62], comb: [W * 0.43, H * 0.26], fmt: [W * 0.66, H * 0.26], all: [W * 0.87, H * 0.44] };
+    // arêtes
+    S.nodes.forEach(n => n.deps.forEach(d => {
+      const [x1, y1] = P[d.id], [x2, y2] = P[n.id];
+      arrow(ctx, x1 + bw / 2, y1, x2 - bw / 2, y2, d.state === 'done' ? C.ok : C.line, { w: 1.5, s2: 2 });
+    }));
+    S.nodes.forEach(n => {
+      const [x, y] = P[n.id];
+      const fill = n.state === 'done' ? alpha(C.ok, 0.14) : n.state === 'running' ? alpha(C.accent, 0.14) : C.surface2;
+      const stroke = n.state === 'done' ? C.ok : n.state === 'running' ? C.accent : n.state === 'queued' ? C.accent : C.line;
+      box(ctx, x - bw / 2, y - bh / 2, bw, bh, { fill, stroke, lw: 1.5, dash: n.state === 'queued' ? [4, 3] : null });
+      txt(ctx, n.label, x, y - 8, { font: 'mono', size: 11, weight: 600, maxw: bw - 10 });
+      const sub = n.state === 'done' ? `= ${n.value}${n.ranBy ? ' · ' + n.ranBy : ''}` : n.state === 'running' ? `${n.worker.name} exécute` : n.state === 'queued' ? 'en file' : 'en attente des dépendances';
+      txt(ctx, sub, x, y + 9, { font: 'mono', size: 10, color: n.state === 'done' ? C.ok : C.muted, maxw: bw - 10 });
+      if (n.state === 'running' && n.worker.workEnd > sim.t) {
+        const f = clamp((sim.t - n.worker.workStart) / (n.worker.workEnd - n.worker.workStart), 0, 1);
+        box(ctx, x - bw / 2 + 4, y + bh / 2 - 5, (bw - 8) * f, 3, { fill: C.accent, r: 1 });
+      }
+    });
+    zl(ctx, `ForkJoinPool.commonPool (${p.pool})`, W * 0.3, H * 0.8);
+    S.W.forEach((th, i) => {
+      const n = th.data.node; let x, y, lab = true;
+      if (n) { x = P[n.id][0] - bw / 2 - 20; y = P[n.id][1]; lab = false; } else { x = W * 0.12 + i * 64 + 40; y = H * 0.9; }
+      drawThread(ctx, th, x, y, { r: 14, label: lab, maxw: 120 });
+    });
+    const [ax, ay] = P.all;
+    drawThread(ctx, S.main, ax, ay + 110, { maxw: 150 });
+    if (S.main.blockedOn && S.main.blockedOn.kind === 'future') arrow(ctx, S.main.x, S.main.y, ax, ay + bh / 2, C.wait, { s1: 22, s2: 2, dash: [5, 4], w: 2 });
+    if (S.result) txt(ctx, S.result, ax, ay + 160, { font: 'mono', size: 12, weight: 700, color: C.ok, halo: C.surface });
+  }
+},
+];
+
+/* ======================================================================
+   Application
+   ====================================================================== */
+let SIM = null, SCN = null, P = {}, running = true, speed = 1, lastTs = 0, END = null, W0 = 800, H0 = 420, lastUi = 0;
+const paramStore = {};
+
+if (typeof document !== 'undefined') {
+  const $ = id => document.getElementById(id);
+  const sceneC = $('scene'), tlC = $('timeline');
+
+  function readTokens() {
+    const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
+    C = { surface: g('--surface'), surface2: g('--surface-2'), ink: g('--ink'), muted: g('--muted'), line: g('--line'), accent: g('--accent'),
+      run: g('--run'), blk: g('--blk'), wait: g('--wait'), tw: g('--tw'), end: g('--end'), ok: g('--ok'), warn: g('--warn'), err: g('--err') };
+  }
+  readTokens();
+  if (typeof matchMedia !== 'undefined') matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+  new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function hl(code) {
+    const KW = 'abstract|boolean|break|catch|class|do|double|else|final|finally|for|if|implements|int|new|private|public|return|static|synchronized|this|throw|throws|true|false|try|void|while|var|null';
+    const re = new RegExp(`(//.*$)|("(?:[^"\\\\]|\\\\.)*")|\\b(${KW})\\b|\\b([A-Z][A-Za-z0-9_]*)\\b|\\b(\\d+)\\b`, 'gm');
+    return esc(code).replace(re, (m, c, s, k, t, n) => c ? `<span class="tk-c">${c}</span>` : s ? `<span class="tk-s">${s}</span>` : k ? `<span class="tk-k">${k}</span>` : t ? `<span class="tk-t">${t}</span>` : `<span class="tk-n">${n}</span>`);
+  }
+
+  // navigation
+  const groups = [...new Set(SCENARIOS.map(s => s.group))];
+  $('navgroups').innerHTML = groups.map(g => {
+    const items = SCENARIOS.filter(s => s.group === g);
+    return `<div class="group"><h2><span>${esc(g)}</span><i>${items.length}</i></h2>${items.map(s => {
+      const n = String(SCENARIOS.indexOf(s) + 1).padStart(2, '0');
+      return `<a href="#${s.id}" data-id="${s.id}" title="${esc(s.title)} · ${esc(s.short)}"><b class="num">${n}</b><span class="lbl"><span class="t">${esc(s.title)}</span><small>${esc(s.short)}</small></span></a>`;
+    }).join('')}</div>`;
+  }).join('');
+  function setCollapsed(on) {
+    document.body.classList.toggle('nav-collapsed', on);
+    const b = $('collapse'); const l = on ? 'Déplier le menu' : 'Replier le menu'; b.setAttribute('aria-label', l); b.title = l; b.setAttribute('aria-expanded', on ? 'false' : 'true');
+    try { localStorage.setItem('threads-nav-collapsed', on ? '1' : '0'); } catch (e) {}
+  }
+  let navPref = false; try { navPref = localStorage.getItem('threads-nav-collapsed') === '1'; } catch (e) {}
+  setCollapsed(navPref);
+  $('collapse').addEventListener('click', () => setCollapsed(!document.body.classList.contains('nav-collapsed')));
+
+  $('legend').innerHTML = [['run', 'RUNNABLE', 'en cours'], ['blk', 'BLOCKED', 'attend un verrou'], ['wait', 'WAITING', 'attend un signal'], ['tw', 'TIMED_WAITING', 'attente avec délai'], ['end', 'TERMINATED', 'terminé']]
+    .map(([v, n, d]) => `<span><i style="background:var(--${v})"></i><code>${n}</code> ${d}</span>`).join('') + '<span>arc noir : travail en cours · arc violet : délai restant</span>';
+
+  function load(id) {
+    SCN = SCENARIOS.find(s => s.id === id) || SCENARIOS[0];
+    if (!paramStore[SCN.id]) paramStore[SCN.id] = Object.fromEntries(SCN.params.map(q => [q.id, q.value]));
+    P = paramStore[SCN.id];
+    document.querySelectorAll('.nav a').forEach(a => a.setAttribute('aria-current', a.dataset.id === SCN.id ? 'page' : 'false'));
+    $('eyebrow').textContent = SCN.group; $('title').textContent = SCN.title; $('blurb').textContent = SCN.blurb;
+    $('watch').innerHTML = SCN.watch.map(w => `<li>${esc(w)}</li>`).join('');
+    $('params').innerHTML = SCN.params.map(q => {
+      const pid = 'p-' + q.id;
+      if (q.type === 'select') return `<div class="param"><label for="${pid}">${esc(q.label)}</label><select id="${pid}" data-k="${q.id}">${q.options.map(([v, l]) => `<option value="${v}"${P[q.id] === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></div>`;
+      return `<div class="param"><label for="${pid}">${esc(q.label)} <output id="${pid}-o">${P[q.id]}${q.unit ? ' ' + q.unit : ''}</output></label><input id="${pid}" type="range" data-k="${q.id}" min="${q.min}" max="${q.max}" step="${q.step || 1}" value="${P[q.id]}"></div>`;
+    }).join('');
+    $('params').querySelectorAll('[data-k]').forEach(el => {
+      const q = SCN.params.find(x => x.id === el.dataset.k);
+      el.addEventListener('input', () => {
+        P[q.id] = q.type === 'select' ? el.value : +el.value;
+        const o = document.getElementById(el.id + '-o'); if (o) o.textContent = P[q.id] + (q.unit ? ' ' + q.unit : '');
+        if (q.type !== 'select') return; reset();
+      });
+      if (q.type !== 'select') el.addEventListener('change', reset);
+    });
+    reset();
+  }
+  function reset() {
+    SIM = new Sim(); END = null; SCN.setup(SIM, P, SIM.S);
+    $('code').innerHTML = hl(SCN.code(P));
+    setRunning(true); updateUi(true);
+  }
+  function setRunning(v) { running = v; for (const id of ['play', 'play2']) { $(id).textContent = v ? 'Pause' : (END ? 'Terminé' : 'Reprendre'); $(id).disabled = !!END && !v; } }
+  function checkEnd() {
+    const r = SIM.check(); if (!r) return;
+    END = r;
+    if (r.type === 'cycle') SIM.log('Interblocage : ' + r.cycle.map(t => t.name).join(' → ') + ' → ' + r.cycle[0].name, null, 'err');
+    else if (r.type === 'stall') SIM.log('Tous les threads attendent : plus rien ne peut avancer', null, 'err');
+    else SIM.log('Tous les threads sont terminés', null, 'ok');
+    setRunning(false); updateUi(true);
+  }
+  $('play').addEventListener('click', () => { if (END) return; setRunning(!running); });
+  $('step').addEventListener('click', () => { if (END) return; setRunning(false); SIM.advance(100); checkEnd(); updateUi(true); });
+  $('reset').addEventListener('click', reset);
+  $('speed').addEventListener('input', e => { speed = +e.target.value; $('speedOut').textContent = String(speed).replace('.', ',') + '×'; });
+  document.addEventListener('keydown', e => {
+    if (e.code !== 'Space' || /INPUT|SELECT|BUTTON|TEXTAREA/.test(document.activeElement.tagName)) return;
+    e.preventDefault(); if (!END) setRunning(!running);
+  });
+  window.addEventListener('hashchange', () => load(location.hash.slice(1)));
+  // agrandir / réduire chaque bloc
+  const ICON_MAX = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10V4h6M20 14v6h-6M4 4l6 6M20 20l-6-6"/></svg>';
+  const ICON_MIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4v6H4M14 20v-6h6M10 10L4 4M14 14l6 6"/></svg>';
+  const maxBtns = [...document.querySelectorAll('.max[data-name]')];
+  function setMax(panel, on) {
+    panel.classList.toggle('is-max', on);
+    const b = panel.querySelector('.max[data-name]');
+    b.innerHTML = (on ? ICON_MIN : ICON_MAX) + `<span>${on ? 'Réduire' : 'Agrandir'}</span>`;
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.setAttribute('aria-label', `${on ? 'Réduire' : 'Agrandir'} le bloc ${b.dataset.name}`);
+    b.title = on ? 'Réduire (Échap)' : 'Agrandir en plein écran';
+    document.body.classList.toggle('has-max', !!document.querySelector('.panel.is-max'));
+  }
+  function restoreAll() { document.querySelectorAll('.panel.is-max').forEach(p => setMax(p, false)); }
+  maxBtns.forEach(b => {
+    const panel = b.closest('.panel'); setMax(panel, false);
+    b.addEventListener('click', () => { const on = !panel.classList.contains('is-max'); restoreAll(); if (on) setMax(panel, true); b.blur(); });
+  });
+  $('backdrop').addEventListener('click', restoreAll);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('has-max')) restoreAll(); });
+  $('play2').addEventListener('click', () => { if (END) return; setRunning(!running); $('play2').blur(); });
+
+  function updateUi(force) {
+    const now = performance.now(); if (!force && now - lastUi < 150) return; lastUi = now;
+    $('clock').textContent = 't = ' + (SIM.t / 1000).toFixed(2).replace('.', ',') + ' s';
+    $('stats').innerHTML = SCN.stats(SIM, P, SIM.S).map(s => `<div class="stat ${s.tone || ''}"><span>${esc(s.label)}</span><b>${esc(s.value)}</b></div>`).join('');
+    const L = SIM.logs.slice(-80).reverse();
+    $('log').innerHTML = L.map(l => `<li class="${l.kind}"><time>${(l.t / 1000).toFixed(2).replace('.', ',')}</time><span>${l.th ? `<b style="color:${l.color}">${esc(l.th)}</b> ` : ''}${esc(l.msg)}</span></li>`).join('');
+  }
+
+  function sizeCanvas(c, h) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.height = h + 'px'; }
+    const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, w, h];
+  }
+  function drawScene() {
+    const H = $('pScene').classList.contains('is-max') ? Math.max(300, sceneC.parentElement.clientHeight) : (sceneC.clientWidth < 560 ? 400 : 430);
+    const [ctx, W] = sizeCanvas(sceneC, H); W0 = W; H0 = H;
+    ctx.fillStyle = C.surface; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = alpha(C.line, 0.7);
+    for (let x = 12; x < W; x += 24) for (let y = 12; y < H; y += 24) ctx.fillRect(x, y, 1.2, 1.2);
+    SCN.draw(ctx, W, H, SIM, P, SIM.S, END);
+    if (END) {
+      if (END.type === 'cycle') banner(ctx, W, 'Interblocage détecté : ' + END.cycle.map(t => t.name).join(' → ') + ' → ' + END.cycle[0].name, C.err);
+      else if (END.type === 'stall') banner(ctx, W, 'Tous les threads attendent : plus rien ne peut avancer', C.err);
+      else banner(ctx, W, 'Scénario terminé · « Rejouer » pour recommencer', C.ok);
+    }
+  }
+  function drawTimeline() {
+    const th = SIM.threads, top = 8, isMax = $('pTimeline').classList.contains('is-max');
+    let lane = 20, H = top + th.length * lane + 24;
+    if (isMax) { H = Math.max(160, tlC.parentElement.clientHeight); lane = clamp((H - top - 28) / Math.max(1, th.length), 20, 56); }
+    const [ctx, W] = sizeCanvas(tlC, H);
+    ctx.fillStyle = C.surface; ctx.fillRect(0, 0, W, H);
+    const lx = 58, win = 10000, t1 = Math.max(SIM.t, win), t0 = t1 - win, sx = t => lx + (t - t0) / win * (W - lx - 12);
+    for (let s = Math.ceil(t0 / 1000) * 1000; s <= t1; s += 1000) {
+      const x = sx(s); ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, top - 2); ctx.lineTo(x, H - 18); ctx.stroke();
+      txt(ctx, (s / 1000) + ' s', x, H - 9, { font: 'mono', size: 10, color: C.muted });
+    }
+    th.forEach((t, i) => {
+      const y = top + i * lane;
+      txt(ctx, t.name, lx - 8, y + lane / 2, { font: 'mono', size: isMax ? 13 : 11, weight: 600, align: 'right', color: t.color });
+      for (let k = 0; k < t.hist.length; k++) {
+        const a = t.hist[k].t, b = k + 1 < t.hist.length ? t.hist[k + 1].t : SIM.t, s = t.hist[k].s;
+        if (b < t0 || s === ST.END) continue;
+        const xa = sx(Math.max(a, t0)), xb = sx(b);
+        ctx.fillStyle = stateColor(s); ctx.fillRect(xa, y + 3, Math.max(1, xb - xa), lane - 6);
+      }
+    });
+  }
+  function frame(ts) {
+    const dt = lastTs ? Math.min(50, ts - lastTs) : 16; lastTs = ts;
+    if (running && !END) { SIM.advance(dt * speed); checkEnd(); }
+    try { drawScene(); drawTimeline(); } catch (e) { console.error(e); }
+    updateUi(false);
+    requestAnimationFrame(frame);
+  }
+  load(location.hash.slice(1));
+  requestAnimationFrame(frame);
+}
+if (typeof module !== 'undefined') module.exports = { Sim, SCENARIOS, ST, setSim: s => { SIM = s; } };
+</script>
+</body>
+</html>
