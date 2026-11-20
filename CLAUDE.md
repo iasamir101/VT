@@ -26,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository layout
 
-The folder is a git repository (`origin` = https://github.com/iasamir101/VT.git, branch `master`). Main content:
+The folder is a git repository (`origin` = https://github.com/slbsla/VT.git, transferred from `iasamir101/VT`; branch `master`). Main content:
 
 - `simulation/`: Maven project (Java 21, no dependencies) holding the runnable examples, package root `fr.vt.simulation`:
   - `threadclassique`: classic multithreading, one sub-package per notion; learning-order sub-packages are named `etapeN_name`, numbered from 1 (`etape0_race` is the one exception: step 0 of synchronisation, the problem the other steps solve) (`synchroniseurs.{etape0_race (race condition),etape1_semaphore,etape2_synchronized,etape3_countdownlatch,etape4_cyclicbarrier,etape5_exchanger}`, `deadlock.{etape1_deadlock,etape2_lockordering,etape3_trylock}` (the problem with detection, then fix by lock ordering, then fix by `tryLock` timeout; bank-transfer theme), `executor.{etape1_pool,etape2_callablefuture,etape3_completablefuture}` (numbered by learning order: pool, then Future, then CompletableFuture), `structuresdonnees.{etape1_atomicinteger,etape2_atomiclong,etape3_atomicreference,etape4_concurrenthashmap}` (numbered by learning order: atomic CAS counter, `AtomicLong` vs `LongAdder` under contention, CAS on references, then thread-safe map), `producteurconsommateur.{etape1_waitnotify,etape2_blockingqueue}`, `lecteurredacteur.{etape1_readwritelock,etape2_stampedlock}`).
